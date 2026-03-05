@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { NavLink, Link } from 'react-router-dom'
+import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { useSpeech } from '../contexts/SpeechContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
   { path: '/', label: 'Home' },
@@ -14,6 +15,13 @@ const navItems = [
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const { isSpeechEnabled, toggleSpeech, speak, stop } = useSpeech()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-pink-100 shadow-sm">
@@ -79,6 +87,24 @@ export default function Navbar() {
                 </NavLink>
               )
             ))}
+
+            {/* User info & Logout */}
+            {user && (
+              <div className="flex items-center gap-2 ml-3 pl-3 border-l border-pink-200">
+                <span className="text-sm text-bloom-600 font-medium">
+                  Hi, {user.name?.split(' ')[0]}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  onMouseEnter={() => speak('Logout')}
+                  onMouseLeave={stop}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-full bg-pink-50 text-bloom-600 hover:bg-bloom-100 transition-all duration-200"
+                  id="navbar-logout-btn"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Mobile hamburger & TTS toggle container */}
@@ -135,6 +161,15 @@ export default function Navbar() {
               {item.path === '/emergency' ? '🆘 ' : ''}{item.label}
             </NavLink>
           ))}
+          {/* Mobile Logout */}
+          {user && (
+            <button
+              onClick={() => { setOpen(false); handleLogout(); }}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all duration-200 w-full"
+            >
+              🚪 Logout ({user.name?.split(' ')[0]})
+            </button>
+          )}
         </div>
       </div>
     </nav>

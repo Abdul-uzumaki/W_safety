@@ -1,23 +1,36 @@
+from dotenv import load_dotenv
 import os
+
+# Load environment variables first!
+load_dotenv()
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+from auth import auth_bp
 
 # ==========================================
-# 1. Setup Gemini (SAME AS YOUR CLI)
+# 1. Setup
 # ==========================================
-load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+app = Flask(__name__)
+CORS(app, supports_credentials=True)
+app.secret_key = os.getenv("SECRET_KEY", "safeher-secret-key-change-in-production")
 
-if not GOOGLE_API_KEY:
-    raise ValueError("API key not found! Check your .env file.")
+# Register auth blueprint
+app.register_blueprint(auth_bp)
 
-client = genai.Client(api_key=GOOGLE_API_KEY)
+# ==========================================
+# 2. Gemini Chat Setup (optional — app works for auth even without it)
+# ==========================================
+chat = None
+try:
+    from google import genai
+    from google.genai import types
 
-config = types.GenerateContentConfig(
-    system_instruction="""
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    if GOOGLE_API_KEY:
+        client = genai.Client(api_key=GOOGLE_API_KEY)
+        config = types.GenerateContentConfig(
+            system_instruction="""
 You are an AI emotional support companion for women who may be experiencing harassment, abuse, or distress.
 
 Provide emotional support.
@@ -26,15 +39,19 @@ Do not diagnose.
 Keep responses short.
 Respond in English, Tamil, or Hindi.
 """
-)
-
-chat = client.chats.create(
-    model="gemini-2.5-flash",
-    config=config
-)
+        )
+        chat = client.chats.create(
+            model="gemini-2.5-flash",
+            config=config
+        )
+        print("✅ Gemini AI connected")
+    else:
+        print("⚠️  No GOOGLE_API_KEY — chat disabled, auth still works")
+except Exception as e:
+    print(f"⚠️  Gemini init failed ({e}) — chat disabled, auth still works")
 
 # ==========================================
-# 2. Crisis Detection (SAME AS YOUR CLI)
+# 3. Crisis Detection
 # ==========================================
 crisis_keywords = [
     "suicide", "kill myself", "end my life",
@@ -45,11 +62,8 @@ def check_crisis(text):
     return any(word in text.lower() for word in crisis_keywords)
 
 # ==========================================
-# 3. Flask App Wrapper
+# 4. Routes
 # ==========================================
-app = Flask(__name__)
-CORS(app)
-
 @app.route("/")
 def home():
     return "SafeHer API Running 🚀"
@@ -57,6 +71,9 @@ def home():
 @app.route("/api/chat", methods=["POST"])
 def chat_route():
     try:
+        if not chat:
+            return jsonify({"error": "Chat AI not configured. Set GOOGLE_API_KEY in .env"}), 503
+
         data = request.get_json()
 
         if not data or "message" not in data:
@@ -71,7 +88,6 @@ def chat_route():
                 "If you are in immediate danger, contact emergency services immediately. "
             )
 
-        # SAME Gemini call as CLI
         response = chat.send_message(user_input)
 
         return jsonify({
@@ -86,4 +102,4 @@ def chat_route():
 
 if __name__ == "__main__":
     print("🌸 Server running at http://localhost:5000")
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
