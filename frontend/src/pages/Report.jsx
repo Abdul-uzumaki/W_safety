@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import PageHeader from '../components/PageHeader'
+import MultiSelect from '../components/MultiSelect'
+import { getBnsIssues, getLawDetails, matchIssueToBns } from '../services/legalService'
 
 const initialForm = {
   fullName: '',
   date: '',
   time: '',
   location: '',
-  incidentType: '',
+  incidentType: [], // Changed to array for multiple selections
   description: '',
 }
 
@@ -40,15 +42,52 @@ export default function Report() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState(null)
   const [touched, setTouched] = useState({})
+  const [allIssues] = useState(getBnsIssues())
+  const [selectedLaws, setSelectedLaws] = useState([])
+
+  const [suggestions, setSuggestions] = useState([])
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
     setError(null)
   }
 
+  const handleIncidentTypeChange = (selected) => {
+    setForm(prev => ({ ...prev, incidentType: selected }))
+    setSelectedLaws(selected)
+  }
+
   const handleBlur = (e) => {
     setTouched(prev => ({ ...prev, [e.target.name]: true }))
   }
+
+  const applySuggestions = () => {
+    if (suggestions.length === 0) return
+    const newTypes = [...form.incidentType]
+    suggestions.forEach(s => {
+      if (!newTypes.find(t => t.id === s.id)) {
+        newTypes.push(s)
+      }
+    })
+    handleIncidentTypeChange(newTypes)
+    setSuggestions([])
+  }
+
+  // Effect to suggest incident types based on description (simulated "small model")
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (form.description.length > 10) {
+        const matches = matchIssueToBns(form.description);
+        // Only suggest if not already selected
+        const unselectedMatches = matches.filter(m => !form.incidentType.find(t => t.id === m.id));
+        setSuggestions(unselectedMatches);
+      } else {
+        setSuggestions([])
+      }
+    }, 500); // Debounce
+
+    return () => clearTimeout(timer);
+  }, [form.description, form.incidentType])
 
   const isValid = () => {
     return form.fullName && form.date && form.location && form.description
@@ -68,7 +107,12 @@ export default function Report() {
     setError(null)
 
     try {
-      await axios.post('http://localhost:5000/api/report', form)
+      // Send only IDs for incident types to the backend
+      const payload = {
+        ...form,
+        incidentType: form.incidentType.map(it => it.id)
+      }
+      await axios.post('http://localhost:5000/api/report', payload)
       setSuccess(true)
     } catch (err) {
       setError('Failed to submit the report. Please check your connection and try again.')
@@ -82,7 +126,7 @@ export default function Report() {
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-bloom-50">
         <div className="page-container">
           <div className="glass-card p-8">
-            <SuccessMessage onReset={() => { setSuccess(false); setForm(initialForm); setTouched({}) }} />
+            <SuccessMessage onReset={() => { setSuccess(false); setForm(initialForm); setTouched({}); setSelectedLaws([]) }} />
           </div>
         </div>
       </div>
@@ -90,7 +134,7 @@ export default function Report() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-fuchsia-50 via-white to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-fuchsia-50 via-white to-pink-50 pb-20">
       <div className="page-container">
         <PageHeader
           icon="📋"
@@ -98,168 +142,278 @@ export default function Report() {
           subtitle="Submit a confidential incident report. All information is handled with the utmost care and privacy."
         />
 
-        <div className="glass-card p-6 sm:p-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Form */}
+          <div className="lg:col-span-2">
+            <div className="glass-card p-6 sm:p-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
-            {/* Full Name */}
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Full Name <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                name="fullName"
-                value={form.fullName}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Your full name"
-                className={`input-field ${getFieldError('fullName') ? 'border-red-300 focus:ring-red-300' : ''}`}
-              />
-              {getFieldError('fullName') && (
-                <p className="text-xs text-red-500 mt-1">{getFieldError('fullName')}</p>
-              )}
-            </div>
+                {/* Full Name */}
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Full Name <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={form.fullName}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="Your full name"
+                    className={`input-field ${getFieldError('fullName') ? 'border-red-300 focus:ring-red-300' : ''}`}
+                  />
+                  {getFieldError('fullName') && (
+                    <p className="text-xs text-red-500 mt-1">{getFieldError('fullName')}</p>
+                  )}
+                </div>
 
-            {/* Date */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Date of Incident <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={`input-field ${getFieldError('date') ? 'border-red-300' : ''}`}
-              />
-              {getFieldError('date') && (
-                <p className="text-xs text-red-500 mt-1">{getFieldError('date')}</p>
-              )}
-            </div>
+                {/* Date */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Date of Incident <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="date"
+                    value={form.date}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={`input-field ${getFieldError('date') ? 'border-red-300' : ''}`}
+                  />
+                  {getFieldError('date') && (
+                    <p className="text-xs text-red-500 mt-1">{getFieldError('date')}</p>
+                  )}
+                </div>
 
-            {/* Time */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Time of Incident
-              </label>
-              <input
-                type="time"
-                name="time"
-                value={form.time}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
+                {/* Time */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Time of Incident
+                  </label>
+                  <input
+                    type="time"
+                    name="time"
+                    value={form.time}
+                    onChange={handleChange}
+                    className="input-field"
+                  />
+                </div>
 
-            {/* Location */}
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Location <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                name="location"
-                value={form.location}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Where did the incident occur?"
-                className={`input-field ${getFieldError('location') ? 'border-red-300' : ''}`}
-              />
-              {getFieldError('location') && (
-                <p className="text-xs text-red-500 mt-1">{getFieldError('location')}</p>
-              )}
-            </div>
+                {/* Location */}
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Location <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={form.location}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="Where did the incident occur?"
+                    className={`input-field ${getFieldError('location') ? 'border-red-300' : ''}`}
+                  />
+                  {getFieldError('location') && (
+                    <p className="text-xs text-red-500 mt-1">{getFieldError('location')}</p>
+                  )}
+                </div>
 
-            {/* Incident Type */}
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Type of Incident
-              </label>
-              <div className="relative">
-                <select
-                  name="incidentType"
-                  value={form.incidentType}
-                  onChange={handleChange}
-                  className="input-field appearance-none pr-10 cursor-pointer"
-                >
-                  <option value="">Select type (optional)</option>
-                  <option value="harassment">Sexual Harassment</option>
-                  <option value="domestic_violence">Domestic Violence</option>
-                  <option value="stalking">Stalking</option>
-                  <option value="workplace">Workplace Harassment</option>
-                  <option value="assault">Physical Assault</option>
-                  <option value="other">Other</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-bloom-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                {/* Incident Type - Multi Select */}
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Type of Incident(s)
+                  </label>
+                  <MultiSelect
+                    options={allIssues}
+                    selected={form.incidentType}
+                    onChange={handleIncidentTypeChange}
+                    placeholder="Select multiple incident types (e.g. Stalking, Harassment)"
+                  />
+
+                  {suggestions.length > 0 && (
+                    <div className="mt-2.5 p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl flex items-center justify-between fade-in">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest flex items-center gap-1.5">
+                          <span className="animate-pulse">✨</span> AI Suggestion
+                        </span>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {suggestions.map(s => (
+                            <span key={s.id} className="text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-indigo-100 italic">
+                              {s.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={applySuggestions}
+                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 underline uppercase tracking-wider"
+                      >
+                        Apply all
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Description */}
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Description <span className="text-red-400">*</span>
+                  </label>
+                  <textarea
+                    name="description"
+                    value={form.description}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    rows={5}
+                    placeholder="Describe what happened in as much detail as you're comfortable sharing…"
+                    className={`input-field resize-none leading-relaxed ${getFieldError('description') ? 'border-red-300' : ''}`}
+                  />
+                  {getFieldError('description') && (
+                    <p className="text-xs text-red-500 mt-1">{getFieldError('description')}</p>
+                  )}
                 </div>
               </div>
+
+              {/* Error */}
+              {error && (
+                <div className="mt-5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-center gap-2">
+                  <span>⚠️</span> {error}
+                </div>
+              )}
+
+              {/* Mobile Legal Summary */}
+              {selectedLaws.length > 0 && (
+                <div className="lg:hidden mt-8 p-5 bg-gradient-to-br from-bloom-50 to-white rounded-2xl border border-bloom-100 shadow-sm fade-in">
+                  <h3 className="flex items-center gap-2 font-display font-bold text-gray-800 mb-4">
+                    <span className="text-xl">⚖️</span> Legal Guidance Summary
+                  </h3>
+                  <div className="space-y-4">
+                    {selectedLaws.map(law => (
+                      <div key={law.id} className="pb-3 border-b border-bloom-50 last:border-0">
+                        <div className="text-xs font-bold text-bloom-600 mb-1">Section {law.section}: {law.label}</div>
+                        <div className="text-[10px] text-gray-500 mb-2">{law.description}</div>
+                        {law.filingSteps && (
+                          <div className="bg-white/50 p-2 rounded-lg border border-indigo-50">
+                            <p className="text-[9px] font-bold text-indigo-600 uppercase mb-1">Steps to Report:</p>
+                            <ul className="list-disc list-inside text-[9px] text-gray-600 space-y-1">
+                              {law.filingSteps.slice(0, 3).map((step, i) => (
+                                <li key={i}>{step}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Submit */}
+              <div className="mt-8 flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Submitting…
+                    </>
+                  ) : (
+                    <>📋 Submit Report</>
+                  )}
+                </button>
+                <p className="text-xs text-gray-400 text-center sm:text-left">
+                  Fields marked <span className="text-red-400 font-bold">*</span> are required
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Legal Guidance Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className={`glass-card p-6 border-l-4 border-l-bloom-500 transition-all duration-500 ${selectedLaws.length > 0 ? 'opacity-100 translate-x-0' : 'opacity-60 grayscale'}`}>
+              <h3 className="flex items-center gap-2 font-display font-bold text-gray-800 mb-4">
+                <span className="text-xl">⚖️</span> BNS Legal Guidance
+              </h3>
+
+              {selectedLaws.length === 0 ? (
+                <p className="text-xs text-gray-500 leading-relaxed italic">
+                  Select incident types to see related sections from the Bharatiya Nyaya Sanhita (BNS) and steps to file a complaint.
+                </p>
+              ) : (
+                <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                  {selectedLaws.map(law => (
+                    <div key={law.id} className="p-4 bg-white rounded-xl border border-bloom-100 shadow-sm fade-in hover:border-bloom-300 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[10px] font-bold text-bloom-600 bg-bloom-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Section {law.section}</span>
+                      </div>
+                      <h4 className="text-sm font-bold text-gray-800 mb-2">{law.label}</h4>
+                      <p className="text-xs text-gray-600 leading-relaxed mb-3">
+                        {law.description}
+                      </p>
+
+                      {law.filingSteps && (
+                        <div className="mt-3 pt-3 border-t border-bloom-50">
+                          <h5 className="text-[11px] font-bold text-indigo-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                            <span className="text-sm">📝</span> How to file complaint:
+                          </h5>
+                          <ul className="space-y-2">
+                            {law.filingSteps.map((step, idx) => (
+                              <li key={idx} className="flex gap-2">
+                                <span className="text-indigo-400 text-[10px] mt-0.5">•</span>
+                                <p className="text-[11px] text-gray-600 leading-tight">{step}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="mt-3 pt-3 border-t border-bloom-50">
+                        <div className="flex items-start gap-1.5">
+                          <span className="text-xs">🔨</span>
+                          <p className="text-[10px] text-gray-500 italic">
+                            <span className="font-semibold text-gray-600 uppercase">Punishment:</span> {law.punishment}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-bloom-400 text-center uppercase tracking-widest font-bold pt-2">
+                    Bharatiya Nyaya Sanhita 2023
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Description */}
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Description <span className="text-red-400">*</span>
-              </label>
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                rows={5}
-                placeholder="Describe what happened in as much detail as you're comfortable sharing…"
-                className={`input-field resize-none leading-relaxed ${getFieldError('description') ? 'border-red-300' : ''}`}
-              />
-              {getFieldError('description') && (
-                <p className="text-xs text-red-500 mt-1">{getFieldError('description')}</p>
-              )}
-              <p className="text-xs text-gray-400 mt-1.5">
-                All reports are confidential. Include as much or as little as you feel comfortable sharing.
+
+            {/* Privacy note */}
+            <div className="glass-card p-5 bg-gradient-to-br from-bloom-50 to-white">
+              <div className="flex items-start gap-3 mb-3">
+                <span className="text-lg flex-shrink-0">🔒</span>
+                <h4 className="text-sm font-bold text-gray-800">Privacy & Confidentiality</h4>
+              </div>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Your report is encrypted and handled confidentially.
+                Personal details will only be shared with authorities upon your explicit consent.
               </p>
             </div>
-          </div>
 
-          {/* Error */}
-          {error && (
-            <div className="mt-5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-center gap-2">
-              <span>⚠️</span> {error}
+            <div className="glass-card p-5 bg-gradient-to-br from-indigo-50 to-white">
+              <div className="flex items-start gap-3 mb-3">
+                <span className="text-lg flex-shrink-0">📜</span>
+                <h4 className="text-sm font-bold text-gray-800">Disclaimer</h4>
+              </div>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                The information provided is based on the Bharatiya Nyaya Sanhita (BNS).
+                It is for educational purposes and does not constitute legal advice.
+                Please consult a qualified legal professional for your specific case.
+              </p>
             </div>
-          )}
-
-          {/* Privacy note */}
-          <div className="mt-5 p-4 bg-bloom-50 border border-bloom-100 rounded-xl flex items-start gap-3">
-            <span className="text-lg flex-shrink-0">🔒</span>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              <strong className="text-bloom-700">Privacy assured.</strong> Your report is encrypted and handled confidentially.
-              Personal details will only be shared with authorities upon your explicit consent.
-            </p>
-          </div>
-
-          {/* Submit */}
-          <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                  Submitting…
-                </>
-              ) : (
-                <>📋 Submit Report</>
-              )}
-            </button>
-            <p className="text-xs text-gray-400 text-center sm:text-left">
-              Fields marked <span className="text-red-400 font-bold">*</span> are required
-            </p>
           </div>
         </div>
       </div>
