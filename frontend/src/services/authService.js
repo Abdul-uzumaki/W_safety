@@ -1,52 +1,97 @@
-const API_BASE = 'http://localhost:5000'
+// src/services/authService.js
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+
+const handle = async (res) => {
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Something went wrong');
+  return data;
+};
+
+const authHeaders = (token) => ({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${token}`,
+});
+
+// ── Registration (2 steps) ─────────────────────────────────────────────────
 
 /**
- * Send OTP to the given email address
+ * Step 1 — send name/email/phone/password → backend creates user + sends OTP
+ * @returns { userId, message, channels }
  */
-export async function sendOtp(email, name, phone) {
-    try {
-        const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, name, phone })
-        })
-        return await res.json()
-    } catch (error) {
-        console.error('Send OTP error:', error)
-        return { success: false, error: 'Unable to connect to server. Please try again.' }
-    }
-}
+export const register = async ({ name, email, phone, password }) =>
+  handle(await fetch(`${API}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, phone, password }),
+  }));
 
 /**
- * Verify the OTP
+ * Step 2 — submit OTP code → backend verifies and issues JWT
+ * @returns { token, user }
  */
-export async function verifyOtp(email, otp) {
-    try {
-        const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, otp })
-        })
-        return await res.json()
-    } catch (error) {
-        console.error('Verify OTP error:', error)
-        return { success: false, error: 'Unable to connect to server. Please try again.' }
-    }
-}
+export const verifyRegister = async ({ userId, otp }) =>
+  handle(await fetch(`${API}/auth/verify-register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, otp }),
+  }));
+
+// ── Login (2 steps) ────────────────────────────────────────────────────────
 
 /**
- * Get the current user info
+ * Step 1 — send email/password → backend validates + sends OTP
+ * @returns { userId, message, channels }
  */
-export async function getCurrentUser() {
-    const token = localStorage.getItem('safeher_token')
-    if (!token) return { success: false, error: 'Not authenticated' }
+export const login = async ({ email, password }) =>
+  handle(await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  }));
 
-    try {
-        const res = await fetch(`${API_BASE}/api/auth/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
-        return await res.json()
-    } catch (error) {
-        return { success: false, error: 'Connection error' }
-    }
-}
+/**
+ * Step 2 — submit OTP code → backend issues JWT
+ * @returns { token, user }
+ */
+export const verifyLogin = async ({ userId, otp }) =>
+  handle(await fetch(`${API}/auth/verify-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, otp }),
+  }));
+
+// ── OTP utilities ──────────────────────────────────────────────────────────
+
+/** Resend OTP for 'register' or 'login' purpose */
+export const resendOTP = async ({ userId, purpose }) =>
+  handle(await fetch(`${API}/auth/resend-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, purpose }),
+  }));
+
+// ── Session ────────────────────────────────────────────────────────────────
+
+export const logout = async (token) =>
+  handle(await fetch(`${API}/auth/logout`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  }));
+
+export const getMe = async (token) =>
+  handle(await fetch(`${API}/auth/me`, {
+    headers: authHeaders(token),
+  }));
+
+// ── Activity logging (silent — never breaks app) ───────────────────────────
+
+export const logPageVisit = async (token, page) => {
+  try {
+    await fetch(`${API}/activity/page-visit`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ page }),
+    });
+  } catch (_) {}
+};
