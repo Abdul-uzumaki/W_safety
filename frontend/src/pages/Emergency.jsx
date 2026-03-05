@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import PageHeader from '../components/PageHeader'
+import { useSpeech } from '../contexts/SpeechContext'
 
 const EMERGENCY_NUMBERS = [
   { icon: '🚔', label: 'Police', number: '112', color: 'from-red-500 to-rose-600', bg: 'from-red-50 to-rose-50', border: 'border-red-200', text: 'text-red-600' },
@@ -15,12 +16,12 @@ const TIPS = [
   { icon: '🏃', tip: 'Move to a populated, well-lit area as quickly as possible.' },
   { icon: '📞', tip: 'Call 112 and stay on the line — operators can trace your location.' },
 ]
-
 export default function Emergency() {
   const [contactName, setContactName] = useState('')
   const [contactPhone, setContactPhone] = useState('')
   const [alertSent, setAlertSent] = useState(false)
   const [alertLoading, setAlertLoading] = useState(false)
+  const { speak, stop } = useSpeech()
 
   const handleSendAlert = () => {
     if (!contactName || !contactPhone) return
@@ -48,8 +49,10 @@ export default function Emergency() {
             <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/30 flex items-center justify-center mx-auto mb-4 text-4xl animate-pulse">
               🆘
             </div>
-            <h1 className="font-display text-3xl font-bold mb-2">Emergency Help</h1>
-            <p className="text-white/80 text-sm max-w-xs mx-auto">
+            <h1 className="font-display text-3xl font-bold mb-2" onMouseEnter={() => speak('Emergency Help')} onMouseLeave={stop}>
+              Emergency Help
+            </h1>
+            <p className="text-white/80 text-sm max-w-xs mx-auto" onMouseEnter={() => speak('Stay calm. Help is available. Call the numbers below immediately.')} onMouseLeave={stop}>
               Stay calm. Help is available. Call the numbers below immediately.
             </p>
           </div>
@@ -59,6 +62,8 @@ export default function Emergency() {
         <div className="text-center mb-8">
           <a
             href="tel:112"
+            onMouseEnter={() => speak('Call 112 Emergency')}
+            onMouseLeave={stop}
             className="inline-flex items-center gap-3 bg-gradient-to-r from-red-500 to-rose-600 text-white
                        px-10 py-5 rounded-2xl text-xl font-bold shadow-lg hover:shadow-xl
                        hover:from-red-600 hover:to-rose-700 transition-all duration-200 hover:-translate-y-1
@@ -76,6 +81,8 @@ export default function Emergency() {
             <a
               key={item.number}
               href={`tel:${item.number}`}
+              onMouseEnter={() => speak(`Call ${item.label} on ${item.number}`)}
+              onMouseLeave={stop}
               className={`group flex flex-col items-center gap-2 p-5 bg-gradient-to-br ${item.bg} border ${item.border} rounded-2xl
                           hover:-translate-y-1 transition-all duration-200 hover:shadow-md cursor-pointer`}
             >
@@ -93,7 +100,7 @@ export default function Emergency() {
 
         {/* Alert Trusted Contact */}
         <div className="glass-card p-6 mb-6">
-          <h2 className="font-display font-bold text-gray-800 text-lg mb-1 flex items-center gap-2">
+          <h2 className="font-display font-bold text-gray-800 text-lg mb-1 flex items-center gap-2" onMouseEnter={() => speak('Alert a Trusted Contact')} onMouseLeave={stop}>
             <span>📲</span> Alert a Trusted Contact
           </h2>
           <p className="text-sm text-gray-500 mb-4">
@@ -127,13 +134,15 @@ export default function Emergency() {
           <button
             onClick={handleSendAlert}
             disabled={!contactName || !contactPhone || alertLoading}
+            onMouseEnter={() => speak('Send Emergency Alert')}
+            onMouseLeave={stop}
             className="mt-4 w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {alertLoading ? (
               <>
                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
                 Sending Alert…
               </>
@@ -143,12 +152,12 @@ export default function Emergency() {
 
         {/* Safety Tips */}
         <div className="glass-card p-6">
-          <h2 className="font-display font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
+          <h2 className="font-display font-bold text-gray-800 text-lg mb-4 flex items-center gap-2" onMouseEnter={() => speak('Immediate Safety Tips')} onMouseLeave={stop}>
             <span>⚡</span> Immediate Safety Tips
           </h2>
           <div className="space-y-3">
             {TIPS.map((item, i) => (
-              <div key={i} className="flex items-start gap-3">
+              <div key={i} className="flex items-start gap-3" onMouseEnter={() => speak(item.tip)} onMouseLeave={stop}>
                 <span className="flex-shrink-0 text-xl leading-none mt-0.5">{item.icon}</span>
                 <p className="text-sm text-gray-600 leading-relaxed">{item.tip}</p>
               </div>

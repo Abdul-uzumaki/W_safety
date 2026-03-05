@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import PageHeader from '../components/PageHeader'
 import MultiSelect from '../components/MultiSelect'
-import { getBnsIssues, getLawDetails, matchIssueToBns } from '../services/legalService'
+import { getBnsIssues, matchIssueToBns } from '../services/legalService'
+import { submitReport } from '../services/reportService'
+import { useSpeech } from '../contexts/SpeechContext'
 
 const initialForm = {
   fullName: '',
@@ -13,16 +14,21 @@ const initialForm = {
   description: '',
 }
 
-function SuccessMessage({ onReset }) {
+function SuccessMessage({ onReset, referenceId }) {
   return (
     <div className="text-center py-16 fade-up">
       <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center mx-auto mb-5 text-4xl shadow-sm">
         ✅
       </div>
       <h2 className="font-display text-2xl font-bold text-gray-800 mb-2">Report Submitted</h2>
+      {referenceId && (
+        <p className="text-xs font-mono bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg inline-block mb-3">
+          Reference ID: <strong>{referenceId}</strong>
+        </p>
+      )}
       <p className="text-gray-500 max-w-sm mx-auto text-sm mb-6">
-        Your incident report has been securely submitted. A reference number will be sent to you.
-        Please follow up with local authorities if needed.
+        Your incident report has been securely submitted. Please save your reference ID
+        and follow up with local authorities if needed.
       </p>
       <div className="flex justify-center gap-3">
         <button onClick={onReset} className="btn-primary text-sm">
@@ -40,12 +46,14 @@ export default function Report() {
   const [form, setForm] = useState(initialForm)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [referenceId, setReferenceId] = useState(null)
   const [error, setError] = useState(null)
   const [touched, setTouched] = useState({})
   const [allIssues] = useState(getBnsIssues())
   const [selectedLaws, setSelectedLaws] = useState([])
 
   const [suggestions, setSuggestions] = useState([])
+  const { speak, stop } = useSpeech()
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -107,15 +115,16 @@ export default function Report() {
     setError(null)
 
     try {
-      // Send only IDs for incident types to the backend
       const payload = {
         ...form,
         incidentType: form.incidentType.map(it => it.id)
       }
-      await axios.post('http://localhost:5000/api/report', payload)
+      const result = await submitReport(payload)
+      setReferenceId(result.referenceId || null)
       setSuccess(true)
     } catch (err) {
-      setError('Failed to submit the report. Please check your connection and try again.')
+      console.error('Report submission error:', err)
+      setError('Failed to submit the report. Please ensure the backend server is running and try again.')
     } finally {
       setLoading(false)
     }
@@ -126,7 +135,10 @@ export default function Report() {
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-bloom-50">
         <div className="page-container">
           <div className="glass-card p-8">
-            <SuccessMessage onReset={() => { setSuccess(false); setForm(initialForm); setTouched({}); setSelectedLaws([]) }} />
+            <SuccessMessage
+              referenceId={referenceId}
+              onReset={() => { setSuccess(false); setForm(initialForm); setTouched({}); setSelectedLaws([]); setReferenceId(null) }}
+            />
           </div>
         </div>
       </div>
@@ -150,7 +162,7 @@ export default function Report() {
 
                 {/* Full Name */}
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5" onMouseEnter={() => speak('Full Name')} onMouseLeave={stop}>
                     Full Name <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -169,7 +181,7 @@ export default function Report() {
 
                 {/* Date */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5" onMouseEnter={() => speak('Date of Incident')} onMouseLeave={stop}>
                     Date of Incident <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -187,7 +199,7 @@ export default function Report() {
 
                 {/* Time */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5" onMouseEnter={() => speak('Time of Incident')} onMouseLeave={stop}>
                     Time of Incident
                   </label>
                   <input
@@ -201,7 +213,7 @@ export default function Report() {
 
                 {/* Location */}
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5" onMouseEnter={() => speak('Location')} onMouseLeave={stop}>
                     Location <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -220,7 +232,7 @@ export default function Report() {
 
                 {/* Incident Type - Multi Select */}
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5" onMouseEnter={() => speak('Type of Incidents')} onMouseLeave={stop}>
                     Type of Incident(s)
                   </label>
                   <MultiSelect
@@ -256,7 +268,7 @@ export default function Report() {
 
                 {/* Description */}
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5" onMouseEnter={() => speak('Description')} onMouseLeave={stop}>
                     Description <span className="text-red-400">*</span>
                   </label>
                   <textarea
@@ -313,6 +325,8 @@ export default function Report() {
                 <button
                   onClick={handleSubmit}
                   disabled={loading}
+                  onMouseEnter={() => speak('Submit Report')}
+                  onMouseLeave={stop}
                   className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2"
                 >
                   {loading ? (

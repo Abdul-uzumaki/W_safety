@@ -1,36 +1,82 @@
 import { useState } from 'react'
-import axios from 'axios'
 import PageHeader from '../components/PageHeader'
+import { useSpeech } from '../contexts/SpeechContext'
+import { getBnsIssues } from '../services/legalService'
 
+// The local BNS dataset already has all the relevant data.
+// We group issues by a simple keyword → incident type mapping.
 const INCIDENT_TYPES = [
-  { value: '',                   label: 'Select an incident type...' },
-  { value: 'harassment',         label: '⚠️  Sexual Harassment' },
-  { value: 'domestic_violence',  label: '🏠  Domestic Violence' },
-  { value: 'stalking',           label: '👁️  Stalking' },
-  { value: 'workplace',          label: '💼  Workplace Harassment' },
+  { value: '', label: 'Select an incident type...' },
+  { value: 'harassment', label: '⚠️  Sexual Harassment' },
+  { value: 'domestic_violence', label: '🏠  Domestic Violence' },
+  { value: 'stalking', label: '👁️  Stalking' },
+  { value: 'workplace', label: '💼  Workplace Harassment' },
 ]
 
-function InfoCard({ section }) {
+// Keywords that match BNS issues to each incident category
+const CATEGORY_KEYWORDS = {
+  harassment: ['harassment', 'assault', 'modesty', 'voyeur', 'word', 'gesture', 'privacy'],
+  domestic_violence: ['dowry', 'cruelty', 'wife', 'husband', 'domestic', 'miscarriage', 'grievous'],
+  stalking: ['stalking', 'follow', 'monitor', 'contact'],
+  workplace: ['workplace', 'harassment', 'sexual favour', 'hostile', 'posh'],
+}
+
+// Category titles and summaries displayed above the cards
+const CATEGORY_META = {
+  harassment: {
+    title: 'Sexual Harassment',
+    summary: 'Sexual harassment is a criminal offence. You have a right to a safe environment at work, in public, and online.',
+  },
+  domestic_violence: {
+    title: 'Domestic Violence',
+    summary: 'Domestic violence — physical, emotional, sexual or economic abuse — is illegal under Indian law. You can seek protection orders and shelter.',
+  },
+  stalking: {
+    title: 'Stalking',
+    summary: 'Stalking — repeatedly following or contacting someone against their will — is a cognisable offence under the Bharatiya Nyaya Sanhita.',
+  },
+  workplace: {
+    title: 'Workplace Harassment',
+    summary: 'Every woman has the right to a safe, dignified workplace. The POSH Act 2013 mandates employer action against sexual harassment.',
+  },
+}
+
+function getIssuesForCategory(category) {
+  const allIssues = getBnsIssues()
+  const keywords = CATEGORY_KEYWORDS[category] || []
+  return allIssues.filter(issue => {
+    const hay = `${issue.label} ${issue.description}`.toLowerCase()
+    return keywords.some(kw => hay.includes(kw))
+  }).slice(0, 4)  // Show at most 4 relevant sections
+}
+
+function InfoCard({ issue }) {
+  const { speak, stop } = useSpeech()
+
   return (
-    <div className="glass-card p-5 fade-up">
+    <div
+      className="glass-card p-5 fade-up"
+      onMouseEnter={() => speak(`${issue.label}. ${issue.description}`)}
+      onMouseLeave={stop}
+    >
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-petal-100 to-bloom-100 flex items-center justify-center">
-          <span className="text-xl">{section.icon}</span>
+          <span className="text-xl">⚖️</span>
         </div>
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h3 className="font-display font-semibold text-gray-800 text-base">{section.title}</h3>
-            {section.ipcSection && (
+            <h3 className="font-display font-semibold text-gray-800 text-base">{issue.label}</h3>
+            {issue.section && (
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-petal-100 text-petal-700">
-                {section.ipcSection}
+                BNS § {issue.section}
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-600 leading-relaxed">{section.description}</p>
-          {section.punishment && (
+          <p className="text-sm text-gray-600 leading-relaxed">{issue.description}</p>
+          {issue.punishment && (
             <div className="mt-3 px-3 py-2 bg-red-50 border border-red-100 rounded-xl">
               <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-0.5">Punishment</p>
-              <p className="text-sm text-red-700">{section.punishment}</p>
+              <p className="text-sm text-red-700">{issue.punishment}</p>
             </div>
           )}
         </div>
@@ -39,49 +85,12 @@ function InfoCard({ section }) {
   )
 }
 
-function Skeleton() {
-  return (
-    <div className="space-y-4">
-      {[1, 2, 3].map(i => (
-        <div key={i} className="glass-card p-5 animate-pulse">
-          <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-xl bg-pink-100" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 w-40 bg-pink-100 rounded-lg" />
-              <div className="h-3 w-full bg-pink-50 rounded" />
-              <div className="h-3 w-3/4 bg-pink-50 rounded" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export default function LegalRights() {
   const [selected, setSelected] = useState('')
-  const [legalInfo, setLegalInfo] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const { speak, stop } = useSpeech()
 
-  const handleChange = async (e) => {
-    const value = e.target.value
-    setSelected(value)
-    setLegalInfo(null)
-    setError(null)
-
-    if (!value) return
-
-    setLoading(true)
-    try {
-      const res = await axios.post('http://localhost:5000/api/legal', { type: value })
-      setLegalInfo(res.data)
-    } catch (err) {
-      setError('Unable to fetch legal information. Please check your connection and try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const meta = selected ? CATEGORY_META[selected] : null
+  const issues = selected ? getIssuesForCategory(selected) : []
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-petal-50 via-white to-pink-50">
@@ -89,18 +98,22 @@ export default function LegalRights() {
         <PageHeader
           icon="⚖️"
           title="Know Your Legal Rights"
-          subtitle="Select an incident type to see the relevant laws, IPC sections, and your rights under Indian law."
+          subtitle="Select an incident type to see the relevant laws, BNS sections, and your rights under Indian law."
         />
 
         {/* Dropdown */}
         <div className="glass-card p-6 mb-6">
-          <label className="block text-sm font-semibold text-bloom-700 mb-2">
+          <label
+            className="block text-sm font-semibold text-bloom-700 mb-2"
+            onMouseEnter={() => speak('Select Incident Type')}
+            onMouseLeave={stop}
+          >
             Incident Type
           </label>
           <div className="relative">
             <select
               value={selected}
-              onChange={handleChange}
+              onChange={e => setSelected(e.target.value)}
               className="input-field appearance-none pr-10 cursor-pointer font-medium"
             >
               {INCIDENT_TYPES.map(opt => (
@@ -114,42 +127,31 @@ export default function LegalRights() {
             </div>
           </div>
           <p className="mt-2 text-xs text-gray-400">
-            Information is sourced from Indian Penal Code (IPC) and relevant Acts.
+            Information is sourced from the Bharatiya Nyaya Sanhita (BNS) 2023.
           </p>
         </div>
 
-        {/* Content area */}
-        {loading && <Skeleton />}
-
-        {error && (
-          <div className="p-5 bg-red-50 border border-red-200 rounded-2xl text-sm text-red-700 flex items-center gap-3">
-            <span className="text-2xl">⚠️</span>
-            <div>
-              <p className="font-semibold mb-0.5">Error loading information</p>
-              <p>{error}</p>
-            </div>
-          </div>
-        )}
-
-        {legalInfo && !loading && (
+        {/* Results */}
+        {selected && meta && (
           <div className="space-y-4 fade-up">
             {/* Summary header */}
             <div className="bg-gradient-to-r from-petal-500 to-bloom-500 rounded-2xl p-5 text-white">
               <div className="flex items-center gap-3 mb-1">
                 <span className="text-2xl">⚖️</span>
-                <h2 className="font-display text-xl font-bold">
-                  {legalInfo.title || 'Your Legal Rights'}
-                </h2>
+                <h2 className="font-display text-xl font-bold">{meta.title}</h2>
               </div>
-              <p className="text-white/80 text-sm">
-                {legalInfo.summary || 'Here are the applicable laws and sections for your situation.'}
-              </p>
+              <p className="text-white/80 text-sm">{meta.summary}</p>
             </div>
 
-            {/* Sections */}
-            {(legalInfo.sections || []).map((section, i) => (
-              <InfoCard key={i} section={section} />
-            ))}
+            {/* BNS cards */}
+            {issues.length > 0
+              ? issues.map((issue, i) => <InfoCard key={i} issue={issue} />)
+              : (
+                <div className="glass-card p-6 text-center text-gray-500 text-sm">
+                  No specific BNS sections found. Please consult a legal professional.
+                </div>
+              )
+            }
 
             {/* Helpline footer */}
             <div className="p-5 bg-bloom-50 border border-bloom-200 rounded-2xl">
@@ -162,7 +164,7 @@ export default function LegalRights() {
           </div>
         )}
 
-        {!selected && !loading && (
+        {!selected && (
           <div className="text-center py-16 fade-up">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-petal-100 to-bloom-100 flex items-center justify-center mx-auto mb-4 text-4xl">
               ⚖️

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import axios from 'axios'
 import PageHeader from '../components/PageHeader'
+import { useSpeech } from '../contexts/SpeechContext'
+import { sendMessage } from '../services/chatService'
 
 const INITIAL_MESSAGE = {
   role: 'assistant',
@@ -9,6 +10,8 @@ const INITIAL_MESSAGE = {
 
 function ChatBubble({ message }) {
   const isUser = message.role === 'user'
+  const { speak, stop } = useSpeech()
+
   return (
     <div className={`flex items-end gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'} fade-up`}>
       {/* Avatar */}
@@ -21,11 +24,15 @@ function ChatBubble({ message }) {
       </div>
 
       {/* Bubble */}
-      <div className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed
+      <div
+        className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed
         ${isUser
-          ? 'bg-gradient-to-br from-bloom-500 to-petal-500 text-white rounded-br-sm shadow-bloom'
-          : 'bg-white/90 border border-pink-100 text-gray-700 rounded-bl-sm shadow-sm'
-        }`}>
+            ? 'bg-gradient-to-br from-bloom-500 to-petal-500 text-white rounded-br-sm shadow-bloom'
+            : 'bg-white/90 border border-pink-100 text-gray-700 rounded-bl-sm shadow-sm'
+          }`}
+        onMouseEnter={() => speak(message.text)}
+        onMouseLeave={stop}
+      >
         {message.text}
       </div>
     </div>
@@ -56,6 +63,7 @@ export default function Chat() {
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
+  const { speak, stop } = useSpeech()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -71,11 +79,11 @@ export default function Chat() {
     setError(null)
 
     try {
-      const res = await axios.post('http://localhost:5000/api/chat', { message: text })
-      const reply = res.data?.reply || res.data?.message || 'I hear you. Can you tell me more?'
-      setMessages(prev => [...prev, { role: 'assistant', text: reply }])
+      const reply = await sendMessage(text)
+      setMessages(prev => [...prev, { role: 'assistant', text: reply || 'I hear you. Can you tell me more?' }])
     } catch (err) {
-      setError('Could not reach the support server. Please try again.')
+      console.error('Chat error:', err)
+      setError('Could not reach the support server. Please ensure the backend is running and try again.')
       setMessages(prev => prev.slice(0, -1))
       setInput(text)
     } finally {
@@ -152,6 +160,8 @@ export default function Chat() {
               <button
                 onClick={handleSend}
                 disabled={loading || !input.trim()}
+                onMouseEnter={() => speak('Send Message')}
+                onMouseLeave={stop}
                 className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-bloom-500 to-petal-500 text-white flex items-center justify-center
                            hover:from-bloom-600 hover:to-petal-600 transition-all duration-200 shadow-bloom disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
               >

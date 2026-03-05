@@ -1,4 +1,7 @@
+import { useSpeech } from '../contexts/SpeechContext'
+
 export default function PageHeader({ icon, title, subtitle, accentColor = 'bloom' }) {
+  const { speak, stop } = useSpeech()
   return (
     <div className="relative overflow-hidden rounded-2xl mb-8 bg-gradient-to-br from-bloom-50 via-white to-petal-50 border border-pink-100 p-8">
       {/* Decorative blobs */}
@@ -10,8 +13,8 @@ export default function PageHeader({ icon, title, subtitle, accentColor = 'bloom
           {icon}
         </div>
         <div>
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-bloom-800 leading-tight">{title}</h1>
-          {subtitle && <p className="mt-1 text-sm md:text-base text-gray-500 max-w-xl">{subtitle}</p>}
+          <h1 className="font-display text-2xl md:text-3xl font-bold text-bloom-800 leading-tight" onMouseEnter={() => speak(title)} onMouseLeave={stop}>{title}</h1>
+          {subtitle && <p className="mt-1 text-sm md:text-base text-gray-500 max-w-xl" onMouseEnter={() => speak(subtitle)} onMouseLeave={stop}>{subtitle}</p>}
         </div>
       </div>
     </div>

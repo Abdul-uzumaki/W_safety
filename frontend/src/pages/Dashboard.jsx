@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useSpeech } from '../contexts/SpeechContext'
 
 const features = [
   {
@@ -65,6 +66,7 @@ const features = [
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { speak, stop } = useSpeech()
 
   return (
     <div className="min-h-screen bg-gradient-mesh">
@@ -79,7 +81,10 @@ export default function Dashboard() {
           </div>
 
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-bloom-800 leading-tight mb-4 fade-up"
-              style={{ animationDelay: '0.1s', opacity: 0 }}>
+            style={{ animationDelay: '0.1s', opacity: 0 }}
+            onMouseEnter={() => speak('You Are Not Alone.')}
+            onMouseLeave={stop}
+          >
             You Are Not <br />
             <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-bloom-500 to-petal-500">
               Alone.
@@ -87,21 +92,28 @@ export default function Dashboard() {
           </h1>
 
           <p className="max-w-xl mx-auto text-gray-500 text-base md:text-lg leading-relaxed mb-8 fade-up"
-             style={{ animationDelay: '0.2s', opacity: 0 }}>
+            style={{ animationDelay: '0.2s', opacity: 0 }}
+            onMouseEnter={() => speak('SafeHer is your trusted companion — offering emotional support, legal guidance, incident reporting, and emergency help. All in one place.')}
+            onMouseLeave={stop}
+          >
             SafeHer is your trusted companion — offering emotional support, legal guidance,
             incident reporting, and emergency help. All in one place.
           </p>
 
           <div className="flex items-center justify-center gap-3 mb-2 fade-up"
-               style={{ animationDelay: '0.3s', opacity: 0 }}>
+            style={{ animationDelay: '0.3s', opacity: 0 }}>
             <button
               onClick={() => navigate('/chat')}
+              onMouseEnter={() => speak('Talk to A.I. Support')}
+              onMouseLeave={stop}
               className="btn-primary text-sm"
             >
               💬 Talk to AI Support
             </button>
             <button
               onClick={() => navigate('/emergency')}
+              onMouseEnter={() => speak('Emergency')}
+              onMouseLeave={stop}
               className="px-6 py-3 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
             >
               🆘 Emergency
@@ -121,6 +133,8 @@ export default function Dashboard() {
             <button
               key={f.path}
               onClick={() => navigate(f.path)}
+              onMouseEnter={() => speak(`${f.title}. ${f.description}`)}
+              onMouseLeave={stop}
               className={`group text-left bg-gradient-to-br ${f.bg} border ${f.border} rounded-2xl p-6
                           transition-all duration-300 ${f.hover} hover:-translate-y-1 cursor-pointer
                           fade-up ${f.path === '/emergency' ? 'sm:col-span-2 lg:col-span-1' : ''}`}
@@ -156,10 +170,16 @@ export default function Dashboard() {
               <p className="text-sm text-gray-500 mt-0.5">Emergency services are one tap away.</p>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <a href="tel:112" className="flex items-center gap-2 bg-red-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-600 transition-all hover:shadow-md">
+              <a href="tel:112"
+                onMouseEnter={() => speak('Call 112 Police')}
+                onMouseLeave={stop}
+                className="flex items-center gap-2 bg-red-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-600 transition-all hover:shadow-md">
                 📞 112 Police
               </a>
-              <a href="tel:181" className="flex items-center gap-2 bg-bloom-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-bloom-600 transition-all hover:shadow-md">
+              <a href="tel:181"
+                onMouseEnter={() => speak('Call 181 Women Helpline')}
+                onMouseLeave={stop}
+                className="flex items-center gap-2 bg-bloom-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-bloom-600 transition-all hover:shadow-md">
                 💜 181 Helpline
               </a>
             </div>

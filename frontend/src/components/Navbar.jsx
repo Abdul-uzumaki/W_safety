@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
+import { useSpeech } from '../contexts/SpeechContext'
 
 const navItems = [
-  { path: '/',           label: 'Home' },
-  { path: '/chat',       label: 'Support' },
-  { path: '/legal',      label: 'Legal' },
-  { path: '/report',     label: 'Report' },
-  { path: '/emergency',  label: 'Emergency' },
-  { path: '/education',  label: 'Education' },
+  { path: '/', label: 'Home' },
+  { path: '/chat', label: 'Support' },
+  { path: '/legal', label: 'Legal' },
+  { path: '/report', label: 'Report' },
+  { path: '/emergency', label: 'Emergency' },
+  { path: '/education', label: 'Education' },
 ]
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
+  const { isSpeechEnabled, toggleSpeech, speak, stop } = useSpeech()
 
   return (
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-pink-100 shadow-sm">
@@ -19,7 +21,12 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
+          <Link
+            to="/"
+            className="flex items-center gap-2 group"
+            onMouseEnter={() => speak('SafeHer Home')}
+            onMouseLeave={stop}
+          >
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bloom-400 to-petal-400 flex items-center justify-center shadow-bloom group-hover:scale-110 transition-transform duration-200">
               <span className="text-white text-sm font-bold">✿</span>
             </div>
@@ -30,11 +37,25 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
+            {/* TTS Toggle Button */}
+            <button
+              onClick={toggleSpeech}
+              title={isSpeechEnabled ? "Disable Voice Assistant" : "Enable Voice Assistant"}
+              className={`mr-2 p-2 rounded-full transition-colors ${isSpeechEnabled
+                ? 'bg-bloom-100 text-bloom-700 hover:bg-bloom-200'
+                : 'text-gray-400 hover:bg-gray-100'
+                }`}
+              aria-label="Toggle Text to Speech"
+            >
+              {isSpeechEnabled ? '🔊' : '🔇'}
+            </button>
             {navItems.map(item => (
               item.path === '/emergency' ? (
                 <NavLink
                   key={item.path}
                   to={item.path}
+                  onMouseEnter={() => speak('Emergency')}
+                  onMouseLeave={stop}
                   className="ml-2 px-4 py-1.5 text-sm font-semibold rounded-full bg-red-500 text-white hover:bg-red-600 transition-all duration-200 hover:shadow-md"
                 >
                   🆘 Emergency
@@ -44,6 +65,8 @@ export default function Navbar() {
                   key={item.path}
                   to={item.path}
                   end={item.path === '/'}
+                  onMouseEnter={() => speak(item.label)}
+                  onMouseLeave={stop}
                   className={({ isActive }) =>
                     `px-4 py-2 text-sm font-medium rounded-full transition-all duration-200
                     ${isActive
@@ -58,18 +81,33 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setOpen(!open)}
-            className="md:hidden p-2 rounded-lg text-bloom-500 hover:bg-pink-50 transition"
-            aria-label="Toggle menu"
-          >
-            <div className="w-5 flex flex-col gap-1.5">
-              <span className={`block h-0.5 bg-current rounded transition-all duration-300 ${open ? 'rotate-45 translate-y-2' : ''}`} />
-              <span className={`block h-0.5 bg-current rounded transition-all duration-300 ${open ? 'opacity-0' : ''}`} />
-              <span className={`block h-0.5 bg-current rounded transition-all duration-300 ${open ? '-rotate-45 -translate-y-2' : ''}`} />
-            </div>
-          </button>
+          {/* Mobile hamburger & TTS toggle container */}
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              onClick={toggleSpeech}
+              title={isSpeechEnabled ? "Disable Voice Assistant" : "Enable Voice Assistant"}
+              className={`p-2 rounded-full transition-colors ${isSpeechEnabled
+                ? 'bg-bloom-100 text-bloom-700'
+                : 'text-gray-400'
+                }`}
+              aria-label="Toggle Text to Speech"
+            >
+              {isSpeechEnabled ? '🔊' : '🔇'}
+            </button>
+            <button
+              onClick={() => setOpen(!open)}
+              onMouseEnter={() => !open ? speak('Menu') : speak('Close menu')}
+              onMouseLeave={stop}
+              className="p-2 rounded-lg text-bloom-500 hover:bg-pink-50 transition"
+              aria-label="Toggle menu"
+            >
+              <div className="w-5 flex flex-col gap-1.5">
+                <span className={`block h-0.5 bg-current rounded transition-all duration-300 ${open ? 'rotate-45 translate-y-2' : ''}`} />
+                <span className={`block h-0.5 bg-current rounded transition-all duration-300 ${open ? 'opacity-0' : ''}`} />
+                <span className={`block h-0.5 bg-current rounded transition-all duration-300 ${open ? '-rotate-45 -translate-y-2' : ''}`} />
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -82,6 +120,8 @@ export default function Navbar() {
               to={item.path}
               end={item.path === '/'}
               onClick={() => setOpen(false)}
+              onMouseEnter={() => speak(item.label)}
+              onMouseLeave={stop}
               className={({ isActive }) =>
                 `flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
                 ${item.path === '/emergency'

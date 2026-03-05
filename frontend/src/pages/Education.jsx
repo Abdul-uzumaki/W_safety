@@ -1,4 +1,5 @@
 import PageHeader from '../components/PageHeader'
+import { useSpeech } from '../contexts/SpeechContext'
 
 const SECTIONS = [
   {
@@ -68,10 +69,16 @@ const SECTIONS = [
 ]
 
 function SectionCard({ section }) {
+  const { speak, stop } = useSpeech()
+
   return (
     <div className={`glass-card overflow-hidden mb-6 fade-up`} id={section.id}>
       {/* Header */}
-      <div className={`bg-gradient-to-r ${section.bg} border-b ${section.border} px-6 py-5 flex items-center gap-3`}>
+      <div
+        className={`bg-gradient-to-r ${section.bg} border-b ${section.border} px-6 py-5 flex items-center gap-3`}
+        onMouseEnter={() => speak(section.title)}
+        onMouseLeave={stop}
+      >
         <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${section.color} flex items-center justify-center text-xl shadow-sm`}>
           {section.icon}
         </div>
@@ -81,7 +88,12 @@ function SectionCard({ section }) {
       {/* Steps */}
       <div className="px-6 py-5 space-y-4">
         {section.steps.map((item, i) => (
-          <div key={i} className="flex items-start gap-4">
+          <div
+            key={i}
+            className="flex items-start gap-4"
+            onMouseEnter={() => speak(`Step ${item.step}. ${item.text}`)}
+            onMouseLeave={stop}
+          >
             <div className={`flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br ${section.color} flex items-center justify-center text-white text-xs font-bold shadow-sm mt-0.5`}>
               {item.step}
             </div>
@@ -94,6 +106,8 @@ function SectionCard({ section }) {
 }
 
 export default function Education() {
+  const { speak, stop } = useSpeech()
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-bloom-50 via-white to-petal-50">
       <div className="page-container">
@@ -109,6 +123,8 @@ export default function Education() {
             <a
               key={s.id}
               href={`#${s.id}`}
+              onMouseEnter={() => speak(`Jump to ${s.title}`)}
+              onMouseLeave={stop}
               className="text-sm font-medium px-4 py-2 bg-white/80 border border-pink-200 rounded-full text-gray-600 hover:text-bloom-600 hover:border-bloom-300 hover:bg-bloom-50 transition-all duration-200"
             >
               {s.icon} {s.title}
@@ -137,6 +153,8 @@ export default function Education() {
                 { label: 'iCall (Counselling)', number: '9152987821' },
               ].map(item => (
                 <a key={item.number} href={`tel:${item.number}`}
+                  onMouseEnter={() => speak(`Call ${item.label} on ${item.number}`)}
+                  onMouseLeave={stop}
                   className="flex items-center gap-2 p-3 bg-bloom-50 border border-bloom-100 rounded-xl hover:bg-bloom-100 transition-colors">
                   <span className="text-lg">📞</span>
                   <div>
