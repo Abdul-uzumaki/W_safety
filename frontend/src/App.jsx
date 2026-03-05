@@ -38,7 +38,6 @@ function AppLayout() {
 export default function App() {
   return (
     <Router>
-<<<<<<< HEAD
       <SpeechProvider>
         <div className="flex flex-col min-h-screen">
           <Navbar />
@@ -55,13 +54,11 @@ export default function App() {
           <Footer />
         </div>
       </SpeechProvider>
-=======
       <AuthProvider>
         <SpeechProvider>
           <AppLayout />
         </SpeechProvider>
       </AuthProvider>
->>>>>>> ce5b42d (added login page)
     </Router>
   )
 }
