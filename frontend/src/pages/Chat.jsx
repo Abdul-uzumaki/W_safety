@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import PageHeader from '../components/PageHeader'
 import { useSpeech } from '../contexts/SpeechContext'
 import { sendMessage } from '../services/chatService'
+import { useAuth } from '../contexts/AuthContext'
 
 const INITIAL_MESSAGE = {
   role: 'assistant',
@@ -57,6 +58,8 @@ function TypingIndicator() {
 }
 
 export default function Chat() {
+  const { user } = useAuth()
+  const token = localStorage.getItem('safeher_token')
   const [messages, setMessages] = useState([INITIAL_MESSAGE])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -79,7 +82,7 @@ export default function Chat() {
     setError(null)
 
     try {
-      const reply = await sendMessage(text)
+      const reply = await sendMessage(text, token)
       setMessages(prev => [...prev, { role: 'assistant', text: reply || 'I hear you. Can you tell me more?' }])
     } catch (err) {
       console.error('Chat error:', err)

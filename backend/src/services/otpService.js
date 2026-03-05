@@ -17,34 +17,24 @@ const createAndSendOTP = async ({ userId, email, phone, name, purpose }) => {
 
   await OTP.create({ userId, email, phone, code, purpose, expiresAt });
 
-  const results = { email: false, sms: false };
+  const results = { sms: false };
 
-  // Send email
+  // Send SMS (Primary channel now)
   try {
-    await sendOTPEmail({ to: email, name, otp: code, purpose });
-    results.email = true;
+    await sendOTPSMS({ to: phone, otp: code, purpose });
+    results.sms = true;
   } catch (err) {
-    console.error('[OTP] Email send failed:', err.message);
+    console.error('[OTP] SMS send failed:', err.message);
   }
 
-  // Send SMS if phone provided
-  if (phone) {
-    try {
-      await sendOTPSMS({ to: phone, otp: code, purpose });
-      results.sms = true;
-    } catch (err) {
-      console.error('[OTP] SMS send failed:', err.message);
-    }
-  }
-
-  if (!results.email && !results.sms) {
+  if (!results.sms) {
     if (process.env.NODE_ENV === 'development') {
       console.log('--------------------------------------------------');
-      console.log(`[DEV ONLY] OTP Delivery failed, but your code is: ${code}`);
+      console.log(`[DEV ONLY] OTP SMS Delivery failed, but your code is: ${code}`);
       console.log('--------------------------------------------------');
-      return results; // Return instead of throwing in development
+      return results;
     }
-    throw new Error('Failed to deliver OTP via any channel');
+    throw new Error('Failed to deliver OTP via SMS');
   }
 
   return results;

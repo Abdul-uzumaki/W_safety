@@ -29,4 +29,21 @@ const sendOTPSMS = async ({ to, otp, purpose }) => {
   });
 };
 
-module.exports = { sendOTPSMS };
+const sendGuardianAlert = async ({ to, victimName, guardianName }) => {
+  const client = getClient();
+
+  let formattedTo = to.toString().replace(/\D/g, '');
+  if (formattedTo.length === 10) {
+    formattedTo = `+91${formattedTo}`;
+  } else if (!formattedTo.startsWith('+')) {
+    formattedTo = `+${formattedTo}`;
+  }
+
+  await client.messages.create({
+    body: `🌸 SafeHer EMERGENCY: Hi ${guardianName}, your contact ${victimName} is feeling extremely distressed and may need support. Please check on them immediately.`,
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to: formattedTo,
+  });
+};
+
+module.exports = { sendOTPSMS, sendGuardianAlert };

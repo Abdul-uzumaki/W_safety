@@ -12,7 +12,7 @@ export default {
       },
       colors: {
         bloom: {
-          50:  '#fdf2f8',
+          50: '#fdf2f8',
           100: '#fce7f3',
           200: '#fbcfe8',
           300: '#f9a8d4',
@@ -24,7 +24,7 @@ export default {
           900: '#831843',
         },
         petal: {
-          50:  '#faf5ff',
+          50: '#faf5ff',
           100: '#f3e8ff',
           200: '#e9d5ff',
           300: '#d8b4fe',
@@ -64,5 +64,5 @@ export default {
       }
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 }

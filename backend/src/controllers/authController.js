@@ -131,32 +131,40 @@ const getMe = async (req, res) => {
 // POST /api/auth/passwordless
 const passwordlessAuth = async (req, res, next) => {
   try {
-    const { email, name, phone } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+    const { phone, name, email, guardianName, guardianPhone } = req.body;
+    if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required' });
 
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ phone });
     if (!user) {
       if (!name) return res.status(400).json({ success: false, message: 'Name is required for new users' });
-      user = new User({ name, email, phone: phone || null });
+      user = new User({
+        name,
+        phone,
+        email: email || null,
+        guardianName: guardianName || null,
+        guardianPhone: guardianPhone || null
+      });
     } else {
       if (name) user.name = name;
-      if (phone) user.phone = phone;
+      if (email) user.email = email;
+      if (guardianName) user.guardianName = guardianName;
+      if (guardianPhone) user.guardianPhone = guardianPhone;
     }
     await user.save();
 
     const channels = await createAndSendOTP({ userId: user._id, email: user.email, phone: user.phone, name: user.name, purpose: 'login' });
 
-    res.json({ success: true, message: `OTP sent to your email${user.phone ? ' and phone' : ''}`, userId: user._id, channels });
+    res.json({ success: true, message: `OTP sent to your phone`, userId: user._id, channels });
   } catch (error) { next(error); }
 };
 
 // POST /api/auth/verify-passwordless
 const verifyPasswordlessAuth = async (req, res, next) => {
   try {
-    const { email, otp } = req.body;
-    if (!email || !otp) return res.status(400).json({ success: false, message: 'email and otp are required' });
+    const { phone, otp } = req.body;
+    if (!phone || !otp) return res.status(400).json({ success: false, message: 'phone and otp are required' });
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ phone });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     const result = await verifyOTP({ userId: user._id, code: otp.toString(), purpose: 'login' });

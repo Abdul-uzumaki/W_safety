@@ -1,14 +1,35 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 
 const SpeechContext = createContext()
 
+// Speech Recognition setup (cross-browser)
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
 export function SpeechProvider({ children }) {
     const [isSpeechEnabled, setIsSpeechEnabled] = useState(false)
+    const [isListening, setIsListening] = useState(false)
+    const [transcript, setTranscript] = useState('')
+    const recognitionRef = useRef(null)
 
-    // Initialize SpeechSynthesis on mount to avoid latency on first interaction
+    // Initialize SpeechSynthesis on mount
     useEffect(() => {
         if (typeof window !== 'undefined' && window.speechSynthesis) {
             window.speechSynthesis.getVoices()
+        }
+
+        if (SpeechRecognition) {
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false; // Stop after one result by default
+            recognitionRef.current.interimResults = true;
+            recognitionRef.current.lang = 'en-US';
+
+            recognitionRef.current.onstart = () => setIsListening(true);
+            recognitionRef.current.onend = () => setIsListening(false);
+
+            recognitionRef.current.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setIsListening(false);
+            };
         }
     }, [])
 
@@ -16,14 +37,8 @@ export function SpeechProvider({ children }) {
     const speak = useCallback((text) => {
         if (!isSpeechEnabled || !window.speechSynthesis) return
 
-        // Cancel any ongoing speech
         window.speechSynthesis.cancel()
-
         const utterance = new SpeechSynthesisUtterance(text)
-        // Optional: Customize voice/pitch/rate here
-        // utterance.rate = 1;
-        // utterance.pitch = 1;
-
         window.speechSynthesis.speak(utterance)
     }, [isSpeechEnabled])
 
@@ -36,9 +51,8 @@ export function SpeechProvider({ children }) {
         setIsSpeechEnabled((prev) => {
             const newState = !prev
             if (!newState) {
-                stop() // Stop immediately if toggled off
+                stop()
             } else {
-                // Speak a confirmation string
                 const msg = new SpeechSynthesisUtterance("Voice assistant enabled");
                 window.speechSynthesis.speak(msg);
             }
@@ -46,9 +60,43 @@ export function SpeechProvider({ children }) {
         })
     }, [stop])
 
+    const startListening = useCallback((callback) => {
+        if (!recognitionRef.current) return;
+
+        recognitionRef.current.onresult = (event) => {
+            const currentTranscript = Array.from(event.results)
+                .map(result => result[0])
+                .map(result => result.transcript)
+                .join('');
+
+            setTranscript(currentTranscript);
+            if (event.results[0].isFinal && callback) {
+                callback(currentTranscript);
+            }
+        };
+
+        setTranscript('');
+        recognitionRef.current.start();
+    }, []);
+
+    const stopListening = useCallback(() => {
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+    }, []);
+
 
     return (
-        <SpeechContext.Provider value={{ isSpeechEnabled, toggleSpeech, speak, stop }}>
+        <SpeechContext.Provider value={{
+            isSpeechEnabled,
+            toggleSpeech,
+            speak,
+            stop,
+            isListening,
+            transcript,
+            startListening,
+            stopListening
+        }}>
             {children}
         </SpeechContext.Provider>
     )

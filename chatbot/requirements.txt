@@ -1,9 +1,11 @@
 fastapi
 uvicorn
 pydantic
-google-generativeai
-pyttsx3
+google-genai
+flask
+flask-cors
 python-dotenv
+requests
 flask==3.0.0
 flask-cors==4.0.0
 twilio

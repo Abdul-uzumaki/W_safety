@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const healthRoutes = require('./routes/healthRoutes');
 const activityRoutes = require('./routes/activityRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 console.log('Attempting to connect to DB...');
@@ -30,6 +31,7 @@ app.get('/api/health-check', (req, res) => res.json({ success: true, message: 'S
 app.use('/api/auth', authRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/report', reportRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

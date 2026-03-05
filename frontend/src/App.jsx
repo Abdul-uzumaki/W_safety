@@ -12,6 +12,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import { SpeechProvider } from './contexts/SpeechContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 
+import VoiceCommander from './components/VoiceCommander'
+
 function AppLayout() {
   const { isAuthenticated } = useAuth()
 
@@ -30,6 +32,7 @@ function AppLayout() {
         </Routes>
       </main>
       {isAuthenticated && <Footer />}
+      <VoiceCommander />
     </div>
   )
 }

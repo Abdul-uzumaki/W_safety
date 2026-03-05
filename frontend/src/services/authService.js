@@ -10,16 +10,18 @@ const handle = async (res) => {
 
 /**
  * Send OTP (Passwordless)
- * @param {string} email
- * @param {string} name
  * @param {string} phone
+ * @param {string} name
+ * @param {string} email
+ * @param {string} guardianName
+ * @param {string} guardianPhone
  */
-export const sendOtp = async (email, name, phone) => {
+export const sendOtp = async (phone, name, email, guardianName, guardianPhone) => {
     try {
         return await handle(await fetch(`${API_BASE}/auth/passwordless`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, name, phone }),
+            body: JSON.stringify({ phone, name, email, guardianName, guardianPhone }),
         }));
     } catch (error) {
         return { success: false, error: error.message };
@@ -28,15 +30,15 @@ export const sendOtp = async (email, name, phone) => {
 
 /**
  * Verify OTP (Passwordless)
- * @param {string} email
+ * @param {string} phone
  * @param {string} otp
  */
-export const verifyOtp = async (email, otp) => {
+export const verifyOtp = async (phone, otp) => {
     try {
         return await handle(await fetch(`${API_BASE}/auth/verify-passwordless`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, otp }),
+            body: JSON.stringify({ phone, otp }),
         }));
     } catch (error) {
         return { success: false, error: error.message };

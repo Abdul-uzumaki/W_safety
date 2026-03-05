@@ -51,15 +51,40 @@ except Exception as e:
     print(f"⚠️  Gemini init failed ({e}) — chat disabled, auth still works")
 
 # ==========================================
-# 3. Crisis Detection
+# 3. Crisis & Depression Detection
 # ==========================================
 crisis_keywords = [
     "suicide", "kill myself", "end my life",
-    "he is here", "unsafe", "raped", "assault"
+    "he is here", "unsafe", "raped", "assault", "hurt me"
+]
+
+depression_keywords = [
+    "depressed", "hopeless", "worthless", "want to die", 
+    "give up", "lonely", "sad", "unhappy", "pain", "suffering"
 ]
 
 def check_crisis(text):
     return any(word in text.lower() for word in crisis_keywords)
+
+def check_depression(text):
+    # Basic keyword check for now
+    return any(word in text.lower() for word in depression_keywords)
+
+# ─── Forward to Health Backend ───────────────────────────
+import requests
+
+NODE_BACKEND_URL = os.getenv("NODE_BACKEND_URL", "http://localhost:4000/api")
+
+def trigger_guardian_notification(auth_token):
+    try:
+        if not auth_token: return False
+        
+        headers = {"Authorization": auth_token}
+        response = requests.post(f"{NODE_BACKEND_URL}/health/notify-guardian", headers=headers, timeout=5)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"⚠️ Failed to trigger guardian notification: {e}")
+        return False
 
 # ==========================================
 # 4. Routes
@@ -75,24 +100,32 @@ def chat_route():
             return jsonify({"error": "Chat AI not configured. Set GOOGLE_API_KEY in .env"}), 503
 
         data = request.get_json()
+        auth_header = request.headers.get("Authorization")
 
         if not data or "message" not in data:
             return jsonify({"error": "Message required"}), 400
 
         user_input = data["message"]
 
-        # Crisis message
+        # Crisis detection
+        is_crisis = check_crisis(user_input)
+        is_depressed = check_depression(user_input)
+
         emergency_note = ""
-        if check_crisis(user_input):
-            emergency_note = (
-                "If you are in immediate danger, contact emergency services immediately. "
-            )
+        if is_crisis:
+            emergency_note = "🚨 [URGENT] Please stay safe. If you are in immediate danger, call 112 now. "
+        elif is_depressed:
+            emergency_note = "💜 [SUPPORT] I'm sending a gentle alert to your guardian so they can reach out. You are not alone. "
+            # Trigger notification to Node backend
+            if auth_header:
+                trigger_guardian_notification(auth_header)
 
         response = chat.send_message(user_input)
 
         return jsonify({
             "success": True,
-            "reply": emergency_note + response.text
+            "reply": emergency_note + response.text,
+            "triggered_alert": is_depressed or is_crisis
         })
 
     except Exception as e:

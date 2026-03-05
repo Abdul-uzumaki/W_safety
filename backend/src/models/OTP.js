@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 
 const otpSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  email: { type: String, required: true },
-  phone: { type: String, default: null },
+  email: { type: String, default: null },
+  phone: { type: String, required: true },
   code: { type: String, required: true },
   purpose: { type: String, enum: ['register', 'login'], default: 'register' },
   expiresAt: { type: Date, required: true },

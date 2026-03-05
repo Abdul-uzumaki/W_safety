@@ -12,6 +12,8 @@ export default function Login() {
     const [name, setName] = useState('')
     const [phone, setPhone] = useState('')
     const [email, setEmail] = useState('')
+    const [guardianName, setGuardianName] = useState('')
+    const [guardianPhone, setGuardianPhone] = useState('')
     const [otp, setOtp] = useState(['', '', '', '', '', ''])
     const [error, setError] = useState('')
     const [isLoading, setIsLoading] = useState(false)
@@ -40,17 +42,17 @@ export default function Login() {
         if (!name.trim()) return setError('Please enter your name')
         if (name.trim().length < 2) return setError('Name must be at least 2 characters')
 
-        if (!email.trim()) return setError('Please enter your email')
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError('Please enter a valid email address')
+        if (!phone.trim()) return setError('Please enter your phone number')
+        const cleanPhone = phone.replace(/\D/g, '')
+        if (cleanPhone.length !== 10) return setError('Phone number must be 10 digits')
 
-        if (phone) {
-            const cleanPhone = phone.replace(/\D/g, '')
-            if (cleanPhone.length !== 10) return setError('Phone number must be 10 digits')
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return setError('Please enter a valid email address')
         }
 
         setIsLoading(true)
         try {
-            const result = await sendOtp(email.trim(), name.trim(), phone.replace(/\D/g, ''))
+            const result = await sendOtp(cleanPhone, name.trim(), email.trim() || null, guardianName.trim() || null, guardianPhone.trim() || null)
             if (result.success) {
                 setStep('otp')
                 setCountdown(30)
@@ -103,7 +105,7 @@ export default function Login() {
 
         setIsLoading(true)
         try {
-            const result = await verifyOtp(email.trim(), otpString)
+            const result = await verifyOtp(phone.replace(/\D/g, ''), otpString)
             if (result.success) {
                 setSuccessUser(result.user)
                 setStep('success')
@@ -127,7 +129,7 @@ export default function Login() {
         setOtp(['', '', '', '', '', ''])
 
         setIsLoading(true)
-        const result = await sendOtp(email.trim(), name.trim(), phone.replace(/\D/g, ''))
+        const result = await sendOtp(phone.replace(/\D/g, ''), name.trim(), email.trim() || null)
         if (result.success) {
             setCountdown(30)
         } else {
@@ -212,23 +214,8 @@ export default function Login() {
                             </div>
 
                             <div className="login-field-group">
-                                <label htmlFor="login-email" className="login-label">
-                                    <span className="login-label-icon">📧</span> Email Address
-                                </label>
-                                <input
-                                    id="login-email"
-                                    type="email"
-                                    className="login-input"
-                                    placeholder="you@example.com"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    autoComplete="email"
-                                />
-                            </div>
-
-                            <div className="login-field-group">
                                 <label htmlFor="login-phone" className="login-label">
-                                    <span className="login-label-icon">📱</span> Phone Number <span className="login-optional">(optional)</span>
+                                    <span className="login-label-icon">📱</span> Phone Number
                                 </label>
                                 <div className="login-phone-wrap">
                                     <span className="login-country-code">+91</span>
@@ -241,6 +228,58 @@ export default function Login() {
                                         onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                                         maxLength={10}
                                         autoComplete="tel"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="login-field-group">
+                                <label htmlFor="login-email" className="login-label">
+                                    <span className="login-label-icon">📧</span> Email Address <span className="login-optional">(optional)</span>
+                                </label>
+                                <input
+                                    id="login-email"
+                                    type="email"
+                                    className="login-input"
+                                    placeholder="you@example.com"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    autoComplete="email"
+                                />
+                            </div>
+
+                            <div className="login-divider">
+                                <span>Emergency Contact</span>
+                            </div>
+
+                            <div className="login-field-group">
+                                <label htmlFor="login-guardian-name" className="login-label">
+                                    <span className="login-label-icon">🛡️</span> Guardian Name
+                                </label>
+                                <input
+                                    id="login-guardian-name"
+                                    type="text"
+                                    className="login-input"
+                                    placeholder="Who should we notify?"
+                                    value={guardianName}
+                                    onChange={e => setGuardianName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="login-field-group">
+                                <label htmlFor="login-guardian-phone" className="login-label">
+                                    <span className="login-label-icon">📞</span> Guardian Phone
+                                </label>
+                                <div className="login-phone-wrap">
+                                    <span className="login-country-code">+91</span>
+                                    <input
+                                        id="login-guardian-phone"
+                                        type="tel"
+                                        className="login-input login-phone-input"
+                                        placeholder="Guardian's 10-digit number"
+                                        value={guardianPhone}
+                                        onChange={e => setGuardianPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                        maxLength={10}
                                     />
                                 </div>
                             </div>
@@ -280,7 +319,7 @@ export default function Login() {
                                 <h2 className="login-form-title">Verify OTP 🔐</h2>
                                 <p className="login-form-desc">
                                     We sent a 6-digit code to<br />
-                                    <strong>{maskedEmail}</strong>
+                                    <strong>+91 {phone}</strong>
                                 </p>
                             </div>
 
@@ -347,7 +386,7 @@ export default function Login() {
                                 className="login-back-btn"
                                 onClick={() => { setStep('details'); setError(''); setOtp(['', '', '', '', '', '']) }}
                             >
-                                ← Change Email
+                                ← Change Number
                             </button>
                         </form>
                     )}
