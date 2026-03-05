@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background-color: #fdf2f8;
+    color: #3b1d2e;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-sm border border-pink-100 rounded-2xl shadow-glass;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-bloom-500 to-petal-500 text-white font-semibold px-6 py-3 rounded-xl
+           hover:from-bloom-600 hover:to-petal-600 transition-all duration-200 shadow-bloom
+           hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  .btn-outline {
+    @apply border-2 border-bloom-300 text-bloom-600 font-semibold px-6 py-3 rounded-xl
+           hover:bg-bloom-50 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .input-field {
+    @apply w-full bg-white/80 border border-pink-200 rounded-xl px-4 py-3 text-sm
+           focus:outline-none focus:ring-2 focus:ring-bloom-300 focus:border-bloom-300
+           placeholder-pink-300 transition-all duration-200;
+  }
+
+  .section-title {
+    @apply font-display text-2xl md:text-3xl font-bold text-bloom-800;
+  }
+
+  .fade-up {
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  .page-container {
+    @apply max-w-5xl mx-auto px-4 sm:px-6 py-8;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #fce7f3;
+}
+::-webkit-scrollbar-thumb {
+  background: #f9a8d4;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ec4899;
+}
+
+/* Dot pattern background util */
+.dot-pattern {
+  background-image: radial-gradient(circle, #f9a8d4 1px, transparent 1px);
+  background-size: 24px 24px;
+}

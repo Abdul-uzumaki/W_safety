@@ -1,32 +1,55 @@
 import os
 import re
 import pyttsx3
+import speech_recognition as sr
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
 # ==========================================
-# 1. Setup Text-to-Speech (pyttsx3)
+# 1. Setup Text-to-Speech
 # ==========================================
-speaker = pyttsx3.init('sapi5')  
-speaker.setProperty('rate', 180) # Speed of speech
+speaker = pyttsx3.init('sapi5')
+speaker.setProperty('rate', 180)
 voices = speaker.getProperty('voices')
-speaker.setProperty('voice', voices[0].id) 
+speaker.setProperty('voice', voices[0].id)
 
 def clean_text_for_speech(text):
-    """Removes markdown symbols and emojis so the TTS engine reads naturally."""
-    text = re.sub(r'\*', '', text) # Remove asterisks
-    text = re.sub(r'#', '', text)  # Remove hash symbols
+    text = re.sub(r'\*', '', text)
+    text = re.sub(r'#', '', text)
     return text
 
 def speak(text):
-    """Speaks the text aloud."""
     cleaned_text = clean_text_for_speech(text)
     speaker.say(cleaned_text)
     speaker.runAndWait()
 
 # ==========================================
-# 2. Setup Gemini API
+# 2. Setup Speech Recognition
+# ==========================================
+recognizer = sr.Recognizer()
+mic = sr.Microphone()
+
+def listen():
+    with mic as source:
+        print("🎤 Listening...")
+        recognizer.adjust_for_ambient_noise(source)
+        audio = recognizer.listen(source)
+
+    try:
+        print("🔍 Recognizing...")
+        text = recognizer.recognize_google(audio)
+        print(f"You (voice): {text}")
+        return text
+    except sr.UnknownValueError:
+        speak("I could not understand. Please repeat.")
+        return None
+    except sr.RequestError:
+        speak("Speech service is unavailable.")
+        return None
+
+# ==========================================
+# 3. Setup Gemini API
 # ==========================================
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -38,95 +61,91 @@ client = genai.Client(api_key=GOOGLE_API_KEY)
 
 config = types.GenerateContentConfig(
     system_instruction = """
-You are a trauma-informed medical counselor and legal support advisor who helps women who may be experiencing or have experienced sexual abuse, harassment, or assault.
+You are an AI emotional support companion for women who may be experiencing harassment, abuse, or distress.
 
-Your role is to provide emotional support, medical guidance, safety advice, and information about legal rights. Your responses must always be empathetic, respectful, non-judgmental, and supportive.
+Your role is to:
+- Provide emotional support and reassurance.
+- Validate feelings in a compassionate and non-judgmental way.
+- Encourage seeking help from trusted individuals and professionals.
 
-Core Responsibilities
+Legal Guidance Rules:
+- You may provide general information that harassment and assault are crimes.
+- Do NOT mention specific legal section numbers or legal codes.
+- Do NOT give detailed legal procedures.
+- Instead, suggest contacting local authorities, women's helplines, or legal aid organizations.
+- Make it clear that laws vary by country.
 
-Emotional Support
-- Start by acknowledging the person’s feelings.
-- Validate their experience and reassure them that the abuse is not their fault.
-- Encourage them to seek help and remind them that they are not alone.
+Medical Guidance Rules:
+- Provide general wellness advice only.
+- Do NOT diagnose conditions.
+- Encourage seeking qualified medical or mental health professionals.
 
-Medical Counseling
-- Provide general advice about possible physical or psychological effects of sexual abuse (trauma, anxiety, PTSD, injuries, etc.).
-- Encourage seeking help from qualified healthcare professionals such as doctors, psychologists, or trauma counselors.
-- Suggest supportive practices such as therapy, support groups, and mental health care.
+Emergency Safety:
+- If user appears in immediate danger, advise contacting emergency services or a trusted person immediately.
 
-Safety Guidance
-- If the person is in immediate danger, advise them to contact emergency services or a trusted person immediately.
-- Encourage developing a personal safety plan.
+Tone:
+- Calm, supportive, and empowering.
+- Short, conversational responses (since responses are spoken aloud).
+- Avoid technical, legal, or clinical language.
 
-Legal Awareness
-- Explain that sexual abuse is a crime and survivors have legal rights.
-- Provide general information about possible legal steps such as:
-  • Filing a police complaint
-  • Preserving evidence
-  • Seeking legal aid or protection orders
-- Encourage contacting local legal aid organizations or women’s helplines.
-
-Confidence Building
-- Help the person rebuild confidence and self-worth.
-- Encourage them to speak with trusted family members, friends, or support organizations.
-- Reinforce that seeking help is a courageous and positive step.
-
-Communication Style
-- Use compassionate and gentle language.
-- Never blame or question the survivor’s actions.
-- Avoid harsh or clinical wording.
-- Focus on empowerment, safety, and healing.
-
-Ethical Boundaries
-- Do not provide graphic descriptions of abuse.
-- Do not replace professional medical or legal services.
-- Encourage seeking qualified professionals and local authorities for formal support.
-
-Language Support
-You understand and speak both English,Tamil and Hindi fluently.
-If the user speaks Tamil, reply in Tamil.
-If the user speaks English, reply in English.
-If the user speaks hindi, reply in Hindi.
-
-Response Style
-Keep answers brief and conversational, as they will be spoken out loud.
+Language:
+- Respond in English, Tamil, or Hindi based on the user’s language.
 """
-
 )
-
 chat = client.chats.create(
     model="gemini-2.5-flash",
     config=config
 )
 
 # ==========================================
-# 3. The Chat Loop
+# 4. Crisis Detection
 # ==========================================
-greeting = "Hello! வணக்கம்! I am ready. Type 'quit' to exit."
+crisis_keywords = [
+    "suicide", "kill myself", "end my life",
+    "he is here", "unsafe", "raped", "assault"
+]
+
+def check_crisis(text):
+    for word in crisis_keywords:
+        if word in text.lower():
+            return True
+    return False
+
+# ==========================================
+# 5. Start Chat
+# ==========================================
+greeting = "Hello! வணக்கம்! I am here for you. Type or type 'voice' to speak. Type 'quit' to exit."
 print(f"🤖 Chatbot: {greeting}")
-speak("Hello! I am ready.")
+speak("Hello. I am here for you.")
 print("-" * 60)
 
 while True:
-    user_input = input("You: ")
-    
+    user_input = input("You (type or say 'voice'): ")
+
+    # Exit condition
     if user_input.lower() in ['quit', 'exit', 'bye', 'sleep']:
-        farewell = "Goodbye! நன்றி, மீண்டும் சந்திப்போம்!"
+        farewell = "Goodbye! Stay safe."
         print(f"🤖 Chatbot: {farewell}")
-        speak("Goodbye boss!")
+        speak("Goodbye. Stay safe.")
         break
 
+    # Voice mode trigger
+    if user_input.lower() == "voice":
+        user_input = listen()
+        if not user_input:
+            continue
+
+    # Crisis detection
+    if check_crisis(user_input):
+        emergency_msg = "If you are in immediate danger, please contact emergency services right now."
+        print(f"🤖 Chatbot: {emergency_msg}")
+        speak(emergency_msg)
+
     try:
-        # Get response from Gemini
         response = chat.send_message(user_input)
-        
-        # Print the text to the terminal
         print(f"🤖 Chatbot: {response.text}")
-        
-        # Speak the response out loud
         speak(response.text)
-        
+
     except Exception as e:
-        error_msg = f"An error occurred: {e}"
-        print(error_msg)
+        print(f"Error: {e}")
         speak("Sorry, I encountered an error.")
