@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import Categories from './pages/Categories'
 import Footer from './components/Footer'
 import Dashboard from './pages/Dashboard'
 import Chat from './pages/Chat'
@@ -23,6 +24,7 @@ export default function App() {
               <Route path="/report" element={<Report />} />
               <Route path="/emergency" element={<Emergency />} />
               <Route path="/education" element={<Education />} />
+              <Route path="/categories" element={<Categories />} />
             </Routes>
           </main>
           <Footer />

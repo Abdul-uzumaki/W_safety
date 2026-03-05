@@ -9,6 +9,7 @@ const navItems = [
   { path: '/report', label: 'Report' },
   { path: '/emergency', label: 'Emergency' },
   { path: '/education', label: 'Education' },
+  { path: '/categories', label: 'Categories' },
 ]
 
 export default function Navbar() {

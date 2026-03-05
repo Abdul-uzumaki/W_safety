@@ -4,9 +4,12 @@ import MultiSelect from '../components/MultiSelect'
 import { getBnsIssues, matchIssueToBns } from '../services/legalService'
 import { submitReport } from '../services/reportService'
 import { useSpeech } from '../contexts/SpeechContext'
+import { jsPDF } from 'jspdf'
 
 const initialForm = {
   fullName: '',
+  mobileNumber: '',
+  guardianNumber: '',
   date: '',
   time: '',
   location: '',
@@ -14,7 +17,54 @@ const initialForm = {
   description: '',
 }
 
-function SuccessMessage({ onReset, referenceId }) {
+function SuccessMessage({ onReset, referenceId, form }) {
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF()
+    const padding = 20
+    const lineHeight = 10
+    let y = 30
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(20)
+    doc.text('Incident Report CONFIDENTIAL', 105, y, { align: 'center' })
+
+    y += lineHeight * 2
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'normal')
+
+    const addLine = (label, value) => {
+      doc.setFont('helvetica', 'bold')
+      doc.text(`${label}:`, padding, y)
+      doc.setFont('helvetica', 'normal')
+
+      const splitValue = doc.splitTextToSize(String(value || 'N/A'), 120)
+      doc.text(splitValue, padding + 50, y)
+      y += (splitValue.length * 7) + 3
+      if (y > 280) {
+        doc.addPage()
+        y = 20
+      }
+    }
+
+    if (referenceId) {
+      addLine('Reference ID', referenceId)
+    }
+
+    addLine('Full Name', form.fullName)
+    addLine('Mobile Number', form.mobileNumber)
+    addLine('Guardian Number', form.guardianNumber)
+    addLine('Date of Incident', form.date)
+    addLine('Time of Incident', form.time)
+    addLine('Location', form.location)
+
+    const types = form.incidentType.map(t => t.label).join(', ')
+    addLine('Incident Type(s)', types)
+
+    addLine('Description', form.description)
+
+    doc.save(`Incident_Report_${referenceId || 'draft'}.pdf`)
+  }
+
   return (
     <div className="text-center py-16 fade-up">
       <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center mx-auto mb-5 text-4xl shadow-sm">
@@ -30,11 +80,14 @@ function SuccessMessage({ onReset, referenceId }) {
         Your incident report has been securely submitted. Please save your reference ID
         and follow up with local authorities if needed.
       </p>
-      <div className="flex justify-center gap-3">
-        <button onClick={onReset} className="btn-primary text-sm">
+      <div className="flex flex-wrap justify-center gap-3">
+        <button onClick={onReset} className="btn-primary text-sm shadow-sm transition-all hover:shadow-md">
           Submit Another Report
         </button>
-        <a href="tel:181" className="btn-outline text-sm">
+        <button onClick={handleDownloadPDF} className="btn-outline text-sm flex items-center gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 shadow-sm transition-all hover:shadow-md">
+          📄 Download PDF
+        </button>
+        <a href="tel:181" className="btn-outline text-sm shadow-sm transition-all hover:shadow-md">
           Call Helpline 181
         </a>
       </div>
@@ -98,7 +151,7 @@ export default function Report() {
   }, [form.description, form.incidentType])
 
   const isValid = () => {
-    return form.fullName && form.date && form.location && form.description
+    return form.fullName && form.mobileNumber && form.date && form.location && form.description
   }
 
   const getFieldError = (field) => {
@@ -108,7 +161,7 @@ export default function Report() {
   }
 
   const handleSubmit = async () => {
-    setTouched({ fullName: true, date: true, location: true, description: true })
+    setTouched({ fullName: true, mobileNumber: true, date: true, location: true, description: true })
     if (!isValid()) return
 
     setLoading(true)
@@ -137,6 +190,7 @@ export default function Report() {
           <div className="glass-card p-8">
             <SuccessMessage
               referenceId={referenceId}
+              form={form}
               onReset={() => { setSuccess(false); setForm(initialForm); setTouched({}); setSelectedLaws([]); setReferenceId(null) }}
             />
           </div>
@@ -177,6 +231,42 @@ export default function Report() {
                   {getFieldError('fullName') && (
                     <p className="text-xs text-red-500 mt-1">{getFieldError('fullName')}</p>
                   )}
+                </div>
+
+                {/* Mobile Number */}
+                <div className="sm:col-span-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5" onMouseEnter={() => speak('Mobile Number')} onMouseLeave={stop}>
+                    Mobile Number <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    name="mobileNumber"
+                    value={form.mobileNumber}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="E.g., +91 9876543210"
+                    className={`input-field ${getFieldError('mobileNumber') ? 'border-red-300 focus:ring-red-300' : ''}`}
+                  />
+                  {getFieldError('mobileNumber') && (
+                    <p className="text-xs text-red-500 mt-1">{getFieldError('mobileNumber')}</p>
+                  )}
+                </div>
+
+                {/* Guardian's Mobile Number */}
+                <div className="sm:col-span-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5" onMouseEnter={() => speak("Guardian's Mobile Number")} onMouseLeave={stop}>
+                    Guardian's Mobile Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="guardianNumber"
+                    value={form.guardianNumber}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="E.g., +91 9876543210"
+                    className="input-field"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">For emergency contact (e.g., suicide or severe depression risks).</p>
                 </div>
 
                 {/* Date */}
