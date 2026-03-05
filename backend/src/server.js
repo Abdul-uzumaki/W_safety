@@ -7,13 +7,22 @@ const healthRoutes = require('./routes/healthRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
+console.log('Attempting to connect to DB...');
 connectDB();
+console.log('Database connection initiated (async)');
 
 const app = express();
 
 app.use(cors({ origin: process.env.CLIENT_URL || '*', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Simple request logger
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
+
 console.log(process.env.MONGO_URI);
 
 app.get('/api/health-check', (req, res) => res.json({ success: true, message: 'Server is running' }));
@@ -26,6 +35,10 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+console.log(`Starting server on port ${PORT}...`);
+app.listen(PORT, () => {
+    console.log(`🚀 Server fully up and running on port ${PORT}`);
+    console.log(`URL: http://localhost:${PORT}/api/health-check`);
+});
 
 module.exports = app;

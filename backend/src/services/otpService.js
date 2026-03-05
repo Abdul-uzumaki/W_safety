@@ -38,6 +38,12 @@ const createAndSendOTP = async ({ userId, email, phone, name, purpose }) => {
   }
 
   if (!results.email && !results.sms) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('--------------------------------------------------');
+      console.log(`[DEV ONLY] OTP Delivery failed, but your code is: ${code}`);
+      console.log('--------------------------------------------------');
+      return results; // Return instead of throwing in development
+    }
     throw new Error('Failed to deliver OTP via any channel');
   }
 
