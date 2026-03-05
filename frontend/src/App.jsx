@@ -27,7 +27,6 @@ function AppLayout() {
           <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
           <Route path="/emergency" element={<ProtectedRoute><Emergency /></ProtectedRoute>} />
           <Route path="/education" element={<ProtectedRoute><Education /></ProtectedRoute>} />
-          <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
         </Routes>
       </main>
       {isAuthenticated && <Footer />}
@@ -38,6 +37,7 @@ function AppLayout() {
 export default function App() {
   return (
     <Router>
+<<<<<<< HEAD
       <SpeechProvider>
         <div className="flex flex-col min-h-screen">
           <Navbar />
@@ -54,6 +54,7 @@ export default function App() {
           <Footer />
         </div>
       </SpeechProvider>
+=======
       <AuthProvider>
         <SpeechProvider>
           <AppLayout />
