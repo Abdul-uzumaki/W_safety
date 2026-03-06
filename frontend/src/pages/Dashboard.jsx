@@ -75,6 +75,12 @@ export default function Dashboard() {
         <div className="absolute inset-0 dot-pattern opacity-30 pointer-events-none" />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-14 pb-12 text-center relative">
 
+          <div className="flex justify-center mb-6 fade-up">
+            <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
+              <img src="/hero-girl.png" alt="MASK Companion" className="w-full h-full object-cover" />
+            </div>
+          </div>
+
           <div className="inline-flex items-center gap-2 bg-white/80 border border-pink-200 rounded-full px-4 py-1.5 text-sm text-bloom-600 font-medium mb-6 shadow-sm fade-up">
             <span className="w-2 h-2 rounded-full bg-bloom-400 animate-pulse" />
             Your safety is our priority
@@ -93,10 +99,10 @@ export default function Dashboard() {
 
           <p className="max-w-xl mx-auto text-gray-500 text-base md:text-lg leading-relaxed mb-8 fade-up"
             style={{ animationDelay: '0.2s', opacity: 0 }}
-            onMouseEnter={() => speak('SafeHer is your trusted companion — offering emotional support, legal guidance, incident reporting, and emergency help. All in one place.')}
+            onMouseEnter={() => speak('MASK is your trusted companion — offering emotional support, legal guidance, incident reporting, and emergency help. All in one place.')}
             onMouseLeave={stop}
           >
-            SafeHer is your trusted companion — offering emotional support, legal guidance,
+            MASK is your trusted companion — offering emotional support, legal guidance,
             incident reporting, and emergency help. All in one place.
           </p>
 

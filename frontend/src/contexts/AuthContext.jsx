@@ -30,10 +30,11 @@ export function AuthProvider({ children }) {
 
     const logout = () => {
         const token = localStorage.getItem('safeher_token')
+        const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
         // Call backend logout
         if (token) {
-            fetch('http://localhost:5000/api/auth/logout', {
+            fetch(`${API_BASE}/auth/logout`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import PageHeader from '../components/PageHeader'
 import MultiSelect from '../components/MultiSelect'
 import { getBnsIssues, matchIssueToBns } from '../services/legalService'
-import { submitReport } from '../services/reportService'
+import { submitReport, downloadReportPDF } from '../services/reportService'
 import { useSpeech } from '../contexts/SpeechContext'
 
 const initialForm = {
@@ -122,9 +122,21 @@ export default function Report() {
       const result = await submitReport(payload)
       setReferenceId(result.referenceId || null)
       setSuccess(true)
+
+      speak('Report submitted successfully. Your reference ID is ' + result.referenceId + '. I am downloading your professional PDF report now.');
+
+      // Auto-download the PDF
+      if (result.reportId) {
+        try {
+          await downloadReportPDF(result.reportId, result.referenceId);
+        } catch (downloadErr) {
+          console.error('Auto-download failed:', downloadErr);
+        }
+      }
     } catch (err) {
       console.error('Report submission error:', err)
       setError('Failed to submit the report. Please ensure the backend server is running and try again.')
+      speak('I am sorry, but there was an error submitting your report. Please try again or check your connection.');
     } finally {
       setLoading(false)
     }

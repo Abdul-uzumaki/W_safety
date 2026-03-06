@@ -411,8 +411,25 @@
 }
 
 /* ─── Form fields ──────────────────────────────── */
-.login-field-group {
-  margin-bottom: 1.25rem;
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0 1rem;
+  color: #9d174d;
+  opacity: 0.4;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: currentColor;
 }
 
 .login-label {

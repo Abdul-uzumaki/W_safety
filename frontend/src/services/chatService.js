@@ -14,11 +14,16 @@ const api = axios.create({
 // ===============================
 // Send Message to Chatbot
 // ===============================
-export const sendMessage = async (message) => {
+export const sendMessage = async (message, token) => {
   try {
+    const headers = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const response = await api.post("/api/chat", {
       message: message,
-    })
+    }, { headers })
 
     return response.data.reply
   } catch (error) {

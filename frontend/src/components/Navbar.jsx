@@ -32,14 +32,14 @@ export default function Navbar() {
           <Link
             to="/"
             className="flex items-center gap-2 group"
-            onMouseEnter={() => speak('SafeHer Home')}
+            onMouseEnter={() => speak('MASK Home')}
             onMouseLeave={stop}
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bloom-400 to-petal-400 flex items-center justify-center shadow-bloom group-hover:scale-110 transition-transform duration-200">
               <span className="text-white text-sm font-bold">✿</span>
             </div>
             <span className="font-display font-bold text-xl text-bloom-700 tracking-tight">
-              Safe<span className="text-petal-500">Her</span>
+              MA<span className="text-petal-500">SK</span>
             </span>
           </Link>
 

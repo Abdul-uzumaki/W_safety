@@ -1,63 +1,162 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 
 const SpeechContext = createContext()
 
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
 export function SpeechProvider({ children }) {
     const [isSpeechEnabled, setIsSpeechEnabled] = useState(false)
+    const [isListening, setIsListening] = useState(false)
+    const [isSpeaking, setIsSpeaking] = useState(false)
+    const [isDictating, setIsDictating] = useState(false)
+    const [transcript, setTranscript] = useState('')
+    const [sttError, setSttError] = useState(null)
 
-    // Initialize SpeechSynthesis on mount to avoid latency on first interaction
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.speechSynthesis) {
-            window.speechSynthesis.getVoices()
+    const recognitionRef = useRef(null)
+    const shouldKeepListening = useRef(false)
+    const dictationCallback = useRef(null)
+    const commandCallback = useRef(null)
+
+    // Robust start function
+    const startMic = useCallback(() => {
+        if (!recognitionRef.current || window.speechSynthesis.speaking) return;
+        try {
+            recognitionRef.current.start();
+            setSttError(null);
+        } catch (e) {
+            // Already started? No problem.
         }
-    }, [])
+    }, []);
 
+    useEffect(() => {
+        if (!SpeechRecognition) return;
 
-    const speak = useCallback((text) => {
-        if (!isSpeechEnabled || !window.speechSynthesis) return
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
 
-        // Cancel any ongoing speech
-        window.speechSynthesis.cancel()
+        recognition.onstart = () => {
+            setIsListening(true);
+            setSttError(null);
+            console.log('STT: Mic Started');
+        };
 
-        const utterance = new SpeechSynthesisUtterance(text)
-        // Optional: Customize voice/pitch/rate here
-        // utterance.rate = 1;
-        // utterance.pitch = 1;
+        recognition.onresult = (event) => {
+            let fullTranscript = '';
+            for (let i = 0; i < event.results.length; i++) {
+                fullTranscript += event.results[i][0].transcript;
+            }
 
-        window.speechSynthesis.speak(utterance)
-    }, [isSpeechEnabled])
+            const text = fullTranscript.trim();
+            setTranscript(text);
+
+            const isFinal = event.results[event.results.length - 1].isFinal;
+
+            if (dictationCallback.current) {
+                dictationCallback.current(text, isFinal);
+            } else if (commandCallback.current && isFinal) {
+                commandCallback.current(event.results[event.results.length - 1][0].transcript.trim());
+            }
+        };
+
+        recognition.onend = () => {
+            setIsListening(false);
+            console.log('STT: Mic Ended');
+            if (shouldKeepListening.current && !window.speechSynthesis.speaking) {
+                setTimeout(startMic, 300);
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error('STT Error:', event.error);
+            setSttError(event.error);
+            setIsListening(false);
+
+            if (event.error === 'not-allowed') {
+                shouldKeepListening.current = false;
+            }
+        };
+
+        recognitionRef.current = recognition;
+    }, [startMic]);
 
     const stop = useCallback(() => {
-        if (!window.speechSynthesis) return
-        window.speechSynthesis.cancel()
-    }, [])
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+    }, []);
+
+    const speak = useCallback((text, callback) => {
+        if (!isSpeechEnabled || !window.speechSynthesis) return;
+
+        stop();
+        const utterance = new SpeechSynthesisUtterance(text);
+
+        utterance.onstart = () => {
+            setIsSpeaking(true);
+            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
+        };
+
+        utterance.onend = () => {
+            setIsSpeaking(false);
+            if (callback) callback();
+            if (shouldKeepListening.current) {
+                setTimeout(startMic, 300);
+            }
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }, [isSpeechEnabled, stop, startMic]);
 
     const toggleSpeech = useCallback(() => {
-        setIsSpeechEnabled((prev) => {
-            const newState = !prev
-            if (!newState) {
-                stop() // Stop immediately if toggled off
+        setIsSpeechEnabled(prev => {
+            const next = !prev;
+            if (next) {
+                shouldKeepListening.current = true;
+                speak("Voice assistant online.");
+                setTimeout(startMic, 400);
             } else {
-                // Speak a confirmation string
-                const msg = new SpeechSynthesisUtterance("Voice assistant enabled");
-                window.speechSynthesis.speak(msg);
+                shouldKeepListening.current = false;
+                if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
+                stop();
             }
-            return newState
-        })
-    }, [stop])
+            return next;
+        });
+    }, [speak, startMic, stop]);
 
+    const startDictation = useCallback((callback) => {
+        dictationCallback.current = callback;
+        setIsDictating(true);
+        setTranscript('');
+        shouldKeepListening.current = true;
+        if (!isListening) startMic();
+    }, [isListening, startMic]);
+
+    const stopDictation = useCallback(() => {
+        dictationCallback.current = null;
+        setIsDictating(false);
+        setTranscript('');
+        if (!isSpeechEnabled) {
+            shouldKeepListening.current = false;
+            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
+        }
+    }, [isSpeechEnabled]);
 
     return (
-        <SpeechContext.Provider value={{ isSpeechEnabled, toggleSpeech, speak, stop }}>
+        <SpeechContext.Provider value={{
+            isSpeechEnabled, toggleSpeech,
+            speak, stop,
+            isListening, isSpeaking, isDictating,
+            transcript, sttError,
+            startDictation, stopDictation,
+            setCommandCallback: (cb) => { commandCallback.current = cb; },
+            isSTTAvailable: !!SpeechRecognition
+        }}>
             {children}
         </SpeechContext.Provider>
     )
 }
 
 export function useSpeech() {
-    const context = useContext(SpeechContext)
-    if (context === undefined) {
-        throw new Error('useSpeech must be used within a SpeechProvider')
-    }
-    return context
+    return useContext(SpeechContext);
 }

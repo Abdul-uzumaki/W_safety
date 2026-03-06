@@ -1,52 +1,71 @@
-const API_BASE = 'http://localhost:5000'
+// src/services/authService.js
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+
+const handle = async (res) => {
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Something went wrong');
+    return data;
+};
 
 /**
- * Send OTP to the given email address
+ * Send OTP (Passwordless)
+ * @param {string} phone
+ * @param {string} name
+ * @param {string} email
+ * @param {string} guardianName
+ * @param {string} guardianPhone
  */
-export async function sendOtp(email, name, phone) {
+export const sendOtp = async (phone, name, email, guardianName, guardianPhone) => {
     try {
-        const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
+        return await handle(await fetch(`${API_BASE}/auth/passwordless`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, name, phone })
-        })
-        return await res.json()
+            body: JSON.stringify({ phone, name, email, guardianName, guardianPhone }),
+        }));
     } catch (error) {
-        console.error('Send OTP error:', error)
-        return { success: false, error: 'Unable to connect to server. Please try again.' }
+        return { success: false, error: error.message };
     }
-}
+};
 
 /**
- * Verify the OTP
+ * Verify OTP (Passwordless)
+ * @param {string} phone
+ * @param {string} otp
  */
-export async function verifyOtp(email, otp) {
+export const verifyOtp = async (phone, otp) => {
     try {
-        const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+        return await handle(await fetch(`${API_BASE}/auth/verify-passwordless`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, otp })
-        })
-        return await res.json()
+            body: JSON.stringify({ phone, otp }),
+        }));
     } catch (error) {
-        console.error('Verify OTP error:', error)
-        return { success: false, error: 'Unable to connect to server. Please try again.' }
+        return { success: false, error: error.message };
     }
-}
+};
 
 /**
- * Get the current user info
+ * Get current user info
  */
-export async function getCurrentUser() {
-    const token = localStorage.getItem('safeher_token')
-    if (!token) return { success: false, error: 'Not authenticated' }
+export const getMe = async (token) => {
+    return handle(await fetch(`${API_BASE}/auth/me`, {
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+    }));
+};
 
-    try {
-        const res = await fetch(`${API_BASE}/api/auth/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
-        return await res.json()
-    } catch (error) {
-        return { success: false, error: 'Connection error' }
-    }
-}
+/**
+ * Logout
+ */
+export const logout = async (token) => {
+    return handle(await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+    }));
+};

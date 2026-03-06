@@ -167,7 +167,7 @@ export default function Emergency() {
 
         {/* Bottom disclaimer */}
         <p className="text-center text-xs text-gray-400 mt-6">
-          SafeHer is not a substitute for emergency services. Always call 112 in life-threatening situations.
+          MASK is not a substitute for emergency services. Always call 112 in life-threatening situations.
         </p>
       </div>
     </div>
