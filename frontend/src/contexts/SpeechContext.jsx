@@ -19,14 +19,14 @@ export function SpeechProvider({ children }) {
 
     // Robust start function
     const startMic = useCallback(() => {
-        if (!recognitionRef.current || isSpeaking) return;
+        if (!recognitionRef.current || window.speechSynthesis.speaking) return;
         try {
             recognitionRef.current.start();
             setSttError(null);
         } catch (e) {
             // Already started? No problem.
         }
-    }, [isSpeaking]);
+    }, []);
 
     useEffect(() => {
         if (!SpeechRecognition) return;
@@ -100,10 +100,13 @@ export function SpeechProvider({ children }) {
         utterance.onend = () => {
             setIsSpeaking(false);
             if (callback) callback();
+            if (shouldKeepListening.current) {
+                setTimeout(startMic, 300);
+            }
         };
 
         window.speechSynthesis.speak(utterance);
-    }, [isSpeechEnabled, stop]);
+    }, [isSpeechEnabled, stop, startMic]);
 
     const toggleSpeech = useCallback(() => {
         setIsSpeechEnabled(prev => {

@@ -9,6 +9,8 @@ const COMMANDS = {
     'dashboard': '/',
     'chat': '/chat',
     'talk': '/chat',
+    'support': '/chat',
+    'get me to support': '/chat',
     'legal': '/legal',
     'rights': '/legal',
     'report': '/report',
@@ -67,7 +69,8 @@ export default function VoiceCommander() {
 
         // 3. AI Chat (Hands-free mode)
         try {
-            const reply = await sendMessage(lowerText);
+            const token = localStorage.getItem('safeher_token');
+            const reply = await sendMessage(lowerText, token);
             speak(reply);
         } catch (error) {
             console.error('VoiceCommander: AI Error:', error);
@@ -127,7 +130,7 @@ export default function VoiceCommander() {
                 </button>
 
                 <div className={`p-4 rounded-full shadow-2xl transition-all transform duration-500 ${isSpeaking ? 'bg-blue-600 text-white scale-110 shadow-lg' :
-                        isListening ? 'bg-bloom-600 text-white scale-110 ring-4 ring-bloom-100' : 'bg-gray-400 text-white'
+                    isListening ? 'bg-bloom-600 text-white scale-110 ring-4 ring-bloom-100' : 'bg-gray-400 text-white'
                     }`}>
                     {isSpeaking ? <Volume2 size={24} className="animate-pulse" /> : <Mic size={24} />}
                 </div>

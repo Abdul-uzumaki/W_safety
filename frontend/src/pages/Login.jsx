@@ -155,20 +155,10 @@ export default function Login() {
                 {/* Left: Illustration side */}
                 <div className="login-hero">
                     <div className="login-hero-content">
-                        <div className="login-shield-icon">
-                            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M32 4L8 16V32C8 46.4 18.4 59.2 32 62C45.6 59.2 56 46.4 56 32V16L32 4Z"
-                                    fill="url(#shieldGrad)" stroke="white" strokeWidth="2" />
-                                <path d="M28 38L22 32L24.8 29.2L28 32.4L39.2 21.2L42 24L28 38Z" fill="white" />
-                                <defs>
-                                    <linearGradient id="shieldGrad" x1="8" y1="4" x2="56" y2="62" gradientUnits="userSpaceOnUse">
-                                        <stop stopColor="#ec4899" />
-                                        <stop offset="1" stopColor="#a855f7" />
-                                    </linearGradient>
-                                </defs>
-                            </svg>
+                        <div className="login-shield-icon" style={{ width: '150px', height: '150px', overflow: 'hidden', borderRadius: '50%', border: '4px solid white', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
+                            <img src="/hero-girl.png" alt="MASK illustration" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
-                        <h1 className="login-hero-title">SafeHer</h1>
+                        <h1 className="login-hero-title">MASK</h1>
                         <p className="login-hero-subtitle">Your safety companion — always by your side</p>
                         <div className="login-hero-features">
                             <div className="login-feature">

@@ -13,7 +13,7 @@ export default function Footer() {
                 <span className="text-white text-xs font-bold">✿</span>
               </div>
               <span className="font-display font-bold text-lg text-bloom-700">
-                Safe<span className="text-petal-500">Her</span>
+                MA<span className="text-petal-500">SK</span>
               </span>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed">
@@ -26,9 +26,9 @@ export default function Footer() {
             <h3 className="font-semibold text-sm text-bloom-700 mb-3 uppercase tracking-wider">Quick Links</h3>
             <div className="space-y-1.5">
               {[
-                { to: '/chat',      label: 'AI Emotional Support' },
-                { to: '/legal',     label: 'Legal Rights' },
-                { to: '/report',    label: 'Report Incident' },
+                { to: '/chat', label: 'AI Emotional Support' },
+                { to: '/legal', label: 'Legal Rights' },
+                { to: '/report', label: 'Report Incident' },
                 { to: '/education', label: 'Safety Education' },
               ].map(item => (
                 <Link key={item.to} to={item.to}
@@ -61,7 +61,7 @@ export default function Footer() {
 
         <div className="mt-8 pt-6 border-t border-pink-100 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-xs text-gray-400">
-            © {new Date().getFullYear()} SafeHer. Built with 💜 for women everywhere.
+            © {new Date().getFullYear()} MASK. Built with 💜 for women everywhere.
           </p>
           <p className="text-xs text-gray-400">
             In an emergency, always call <strong>112</strong>.

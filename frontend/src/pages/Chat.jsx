@@ -30,12 +30,12 @@ function ChatBubble({ message, micOn }) {
   const isUser = message.role === 'user'
   return (
     <div className={`flex items-end gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'} fade-up`}>
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm
+      <div className={`flex flex-shrink-0 w-8 h-8 rounded-full items-center justify-center text-sm font-bold shadow-sm overflow-hidden border border-pink-200
         ${isUser
-          ? 'bg-gradient-to-br from-bloom-400 to-petal-400 text-white'
-          : 'bg-gradient-to-br from-petal-100 to-pink-100 text-bloom-500 border border-pink-200'
+          ? 'bg-gradient-to-br from-bloom-400 to-petal-400 text-white border-none'
+          : 'bg-white text-bloom-500'
         }`}>
-        {isUser ? 'Y' : '✿'}
+        {isUser ? 'Y' : <img src="/hero-girl.png" alt="AI" className="w-full h-full object-cover" />}
       </div>
       <div
         className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed cursor-pointer transition-colors
@@ -55,7 +55,9 @@ function ChatBubble({ message, micOn }) {
 function TypingIndicator() {
   return (
     <div className="flex items-end gap-2 fade-up">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-petal-100 to-pink-100 border border-pink-200 flex items-center justify-center text-sm text-bloom-500">✿</div>
+      <div className="w-8 h-8 rounded-full bg-white border border-pink-200 flex flex-shrink-0 items-center justify-center overflow-hidden shadow-sm">
+        <img src="/hero-girl.png" alt="AI" className="w-full h-full object-cover" />
+      </div>
       <div className="bg-white/90 border border-pink-100 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
         <div className="flex gap-1 items-center h-4">
           <span className="w-2 h-2 rounded-full bg-bloom-300 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -280,9 +282,11 @@ export default function Chat() {
           {/* Header bar */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100 bg-white/50">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-bloom-400 to-petal-400 flex items-center justify-center text-white text-base shadow-bloom">✿</div>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-bloom-400 to-petal-400 flex flex-shrink-0 items-center justify-center text-white text-base shadow-bloom overflow-hidden border-2 border-white">
+                <img src="/hero-girl.png" alt="MASK Assistant" className="w-full h-full object-cover" />
+              </div>
               <div>
-                <p className="font-semibold text-sm text-gray-800">SafeHer AI Companion</p>
+                <p className="font-semibold text-sm text-gray-800">MASK AI Companion</p>
                 <p className="text-xs text-green-500 flex items-center gap-1 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                   Online — Here for you
