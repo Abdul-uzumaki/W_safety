@@ -83,7 +83,8 @@ export default function Chat() {
   const [micOn, setMicOn] = useState(false)
   const [micStatus, setMicStatus] = useState('') // '', 'listening', 'paused', 'error:...'
   const recognitionRef = useRef(null)
-  const micActiveRef = useRef(false)  // ref to avoid stale closures
+  const micActiveRef = useRef(false)  // global on/off
+  const micPausedRef = useRef(false)  // temporary pause (e.g., during AI TTS)
 
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -100,7 +101,6 @@ export default function Chat() {
       return
     }
 
-    // Kill any existing instance first
     if (recognitionRef.current) {
       try { recognitionRef.current.abort() } catch (_) { }
       recognitionRef.current = null
@@ -112,11 +112,16 @@ export default function Chat() {
     rec.continuous = true
 
     rec.onstart = () => {
-      setMicStatus('listening')
-      console.log('🎤 Mic STARTED')
+      if (micPausedRef.current) {
+        try { rec.abort() } catch (_) { }
+      } else {
+        setMicStatus('listening')
+        console.log('🎤 Mic STARTED')
+      }
     }
 
     rec.onresult = (e) => {
+      if (micPausedRef.current) return
       let text = ''
       for (let i = 0; i < e.results.length; i++) {
         text += e.results[i][0].transcript
@@ -125,8 +130,10 @@ export default function Chat() {
     }
 
     rec.onerror = (e) => {
-      console.error('🎤 Mic Error:', e.error)
-      setMicStatus('error:' + e.error)
+      if (e.error !== 'aborted') {
+        console.error('🎤 Mic Error:', e.error)
+        setMicStatus('error:' + e.error)
+      }
       if (e.error === 'not-allowed') {
         alert('Microphone blocked! Allow it in the address bar.')
         micActiveRef.current = false
@@ -135,21 +142,28 @@ export default function Chat() {
     }
 
     rec.onend = () => {
-      console.log('🎤 Mic session ended. micActiveRef:', micActiveRef.current)
-      // Use the REF (not state) to decide if we should restart
-      if (micActiveRef.current) {
+      console.log('🎤 Mic session ended. Active:', micActiveRef.current, 'Paused:', micPausedRef.current)
+      // Auto-restart only if active AND NOT paused
+      if (micActiveRef.current && !micPausedRef.current) {
         console.log('🎤 Auto-restarting mic...')
         setTimeout(() => {
-          if (micActiveRef.current) {
-            try { rec.start() } catch (_) { }
+          if (micActiveRef.current && !micPausedRef.current) {
+            try { rec.start() } catch (err) {
+              console.error('🎤 Failed to restart:', err)
+              // If it fails (e.g., old instance is dead), create a fresh one
+              if (err.name === 'InvalidStateError') {
+                createAndStartMic()
+              }
+            }
           }
         }, 300)
-      } else {
+      } else if (!micActiveRef.current) {
         setMicStatus('')
       }
     }
 
     recognitionRef.current = rec
+    micPausedRef.current = false
 
     try {
       rec.start()
@@ -157,7 +171,7 @@ export default function Chat() {
       console.error('🎤 Mic failed to start:', err)
       setMicStatus('error:start-failed')
     }
-  }, [])
+  }, []) // No dependencies
 
   /* ── Stop the mic completely ── */
   const killMic = useCallback(() => {
@@ -173,11 +187,13 @@ export default function Chat() {
     if (micActiveRef.current) {
       // Turn OFF
       micActiveRef.current = false
+      micPausedRef.current = false
       setMicOn(false)
       killMic()
     } else {
       // Turn ON
       micActiveRef.current = true
+      micPausedRef.current = false
       setMicOn(true)
       createAndStartMic()
     }
@@ -200,6 +216,7 @@ export default function Chat() {
 
     // Pause mic while AI processes + speaks
     if (wasMicOn) {
+      micPausedRef.current = true
       killMic()
       setMicStatus('paused')
     }
@@ -218,7 +235,10 @@ export default function Chat() {
         // Speak AI reply, then restart mic after done
         speakText(replyText, () => {
           console.log('🔊 AI done speaking, restarting mic...')
-          createAndStartMic()
+          micPausedRef.current = false
+          if (micActiveRef.current) {
+            createAndStartMic()
+          }
         })
       }
     } catch (err) {
@@ -226,9 +246,11 @@ export default function Chat() {
       setError('Could not reach the AI. Please try again.')
       setMessages(prev => prev.slice(0, -1))
       setInput(text)
+
       // Restart mic even on error
       if (wasMicOn) {
-        createAndStartMic()
+        micPausedRef.current = false
+        if (micActiveRef.current) createAndStartMic()
       }
     } finally {
       setLoading(false)

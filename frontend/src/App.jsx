@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Dashboard from './pages/Dashboard'
@@ -16,6 +16,8 @@ import VoiceCommander from './components/VoiceCommander'
 
 function AppLayout() {
   const { isAuthenticated } = useAuth()
+  const location = useLocation()
+  const isOnChatPage = location.pathname === '/chat'
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -32,7 +34,8 @@ function AppLayout() {
         </Routes>
       </main>
       {isAuthenticated && <Footer />}
-      <VoiceCommander />
+      {/* Hide global voice assistant on Chat page — Chat has its own mic */}
+      {!isOnChatPage && <VoiceCommander />}
     </div>
   )
 }
