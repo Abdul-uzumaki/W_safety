@@ -96,9 +96,6 @@ def home():
 @app.route("/api/chat", methods=["POST"])
 def chat_route():
     try:
-        if not chat:
-            return jsonify({"error": "Chat AI not configured. Set GOOGLE_API_KEY in .env"}), 503
-
         data = request.get_json()
         auth_header = request.headers.get("Authorization")
 
@@ -106,10 +103,12 @@ def chat_route():
             return jsonify({"error": "Message required"}), 400
 
         user_input = data["message"]
+        print(f"💬 Received: {user_input}")
 
         # Crisis detection
         is_crisis = check_crisis(user_input)
         is_depressed = check_depression(user_input)
+        print(f"🔍 Crisis: {is_crisis}, Depressed: {is_depressed}")
 
         emergency_note = ""
         if is_crisis:
@@ -120,17 +119,26 @@ def chat_route():
             if auth_header:
                 trigger_guardian_notification(auth_header)
 
-        response = chat.send_message(user_input)
+        try:
+            if chat:
+                response = chat.send_message(user_input)
+                reply = response.text
+            else:
+                reply = "Gemini AI is not configured. I'm in fallback mode."
+        except Exception as e:
+            print(f"⚠️ Gemini Error: {e}")
+            # Fallback for leaked keys or quota issues
+            reply = "I'm here to support you. (Note: AI is currently in fallback mode due to API issues, but I'm still listening!)"
 
         return jsonify({
             "success": True,
-            "reply": emergency_note + response.text,
+            "reply": emergency_note + reply,
             "triggered_alert": is_depressed or is_crisis
         })
 
     except Exception as e:
-        print("ERROR:", e)
-        return jsonify({"error": str(e)}), 500
+        print("CRITICAL ERROR:", e)
+        return jsonify({"error": "Internal server error. Please try again later."}), 500
 
 
 if __name__ == "__main__":
